@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Content Tracker — AGI Academy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .num { font-feature-settings: 'tnum' 1; }
+    .scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+    .scrollbar::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 4px; }
+    .scrollbar::-webkit-scrollbar-track { background: transparent; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+    .accent-rule { height: 4px; width: 56px; background: #ff6a00; border-radius: 2px; }
+    select option { background: #141417; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink:    { 950: '#08080a', 900: '#0d0d10', 850: '#141417', 800: '#1a1a1f', 700: '#26262d', 600: '#33333c' },
+            orange: { DEFAULT: '#ff6a00', light: '#ff9a4d', dim: '#7a3300' },
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-ink-950 text-slate-300 min-h-screen antialiased">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 py-8 md:py-10">
+
+    <!-- Header -->
+    <header class="flex flex-wrap items-end justify-between gap-4 mb-8">
+      <div>
+        <div class="accent-rule mb-3"></div>
+        <div class="text-[11px] uppercase tracking-[0.2em] text-orange mb-1.5">AGI Academy · Content Engine</div>
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-white">Content Tracker</h1>
+        <p class="text-slate-400 text-sm mt-2 max-w-xl">Every reel and lead-magnet post you ship. Judged on the one number that matters: leads per view, not vanity views.</p>
+      </div>
+      <div class="flex gap-2 flex-wrap items-center">
+        <span id="statusPill" class="text-[11px] px-2.5 py-1 rounded-full border flex items-center gap-1.5"></span>
+        <button id="btnAdd" class="px-4 py-2 rounded-lg bg-orange hover:bg-orange-light text-black font-semibold text-sm transition">+ Log post</button>
+        <button id="btnSync" class="px-3 py-2 rounded-lg bg-ink-800 hover:bg-ink-700 text-slate-200 text-sm transition">Sync</button>
+        <button id="btnConnect" class="px-3 py-2 rounded-lg bg-ink-800 hover:bg-ink-700 text-slate-200 text-sm transition">Connect Sheet</button>
+        <button id="btnExport" class="px-3 py-2 rounded-lg bg-ink-800 hover:bg-ink-700 text-slate-200 text-sm transition">Export</button>
+        <button id="btnImport" class="px-3 py-2 rounded-lg bg-ink-800 hover:bg-ink-700 text-slate-200 text-sm transition">Import</button>
+        <input id="fileInput" type="file" accept=".csv" class="hidden">
+      </div>
+    </header>
+
+    <!-- KPIs -->
+    <section id="kpis" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8"></section>
+
+    <!-- Diagnostic banner -->
+    <section id="diagnostic" class="hidden bg-ink-900 border border-orange/30 rounded-2xl p-5 mb-8">
+      <div class="flex items-start gap-3">
+        <div class="text-orange text-lg leading-none mt-0.5">◆</div>
+        <div>
+          <div class="text-sm font-semibold text-white mb-1">Content read</div>
+          <p id="diagnosticText" class="text-sm text-slate-400"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison panels -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <section class="bg-ink-900 border border-ink-800 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-1">
+          <h3 class="text-base font-semibold text-white">Reels vs Carousels</h3>
+          <span class="text-[11px] text-slate-500 uppercase tracking-wider">by opt-in rate</span>
+        </div>
+        <p class="text-xs text-slate-500 mb-5">Which format actually pulls leads, not just views.</p>
+        <div id="formatBars" class="space-y-4"></div>
+      </section>
+
+      <section class="bg-ink-900 border border-ink-800 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-1">
+          <h3 class="text-base font-semibold text-white">Instagram vs Facebook</h3>
+          <span class="text-[11px] text-slate-500 uppercase tracking-wider">by opt-in rate</span>
+        </div>
+        <p class="text-xs text-slate-500 mb-5">Where your lead-pulling content lands best.</p>
+        <div id="platformBars" class="space-y-4"></div>
+      </section>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <section class="bg-ink-900 border border-ink-800 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-1">
+          <h3 class="text-base font-semibold text-white">Angle leaderboard</h3>
+          <span class="text-[11px] text-slate-500 uppercase tracking-wider">opt-in rate</span>
+        </div>
+        <p class="text-xs text-slate-500 mb-5">Does $10k / little-win framing beat the big flex? Let the data say.</p>
+        <div id="angleBars" class="space-y-3"></div>
+      </section>
+
+      <section class="bg-ink-900 border border-ink-800 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-1">
+          <h3 class="text-base font-semibold text-white">Leads · last 14 days</h3>
+          <span id="trendMeta" class="text-[11px] text-slate-500 uppercase tracking-wider"></span>
+        </div>
+        <p class="text-xs text-slate-500 mb-5">Daily inbound leads from content.</p>
+        <div id="trendBars" class="flex items-end gap-1.5 h-40"></div>
+      </section>
+    </div>
+
+    <!-- Top posts -->
+    <section class="bg-ink-900 border border-ink-800 rounded-2xl p-6 mb-6">
+      <h3 class="text-base font-semibold text-white mb-1">Top posts by leads</h3>
+      <p class="text-xs text-slate-500 mb-4">Your real winners. Reverse-engineer these, not the high-view duds.</p>
+      <div id="topPosts" class="space-y-2"></div>
+    </section>
+
+    <!-- Log -->
+    <section class="bg-ink-900 border border-ink-800 rounded-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-ink-800 flex items-center justify-between flex-wrap gap-3">
+        <h3 class="text-base font-semibold text-white">Content log</h3>
+        <div class="flex gap-2 flex-wrap items-center">
+          <input id="search" type="text" placeholder="Search hook…" class="bg-ink-850 border border-ink-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-orange w-40">
+          <select id="fPlatform" class="bg-ink-850 border border-ink-700 rounded-lg px-2 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-orange"></select>
+          <select id="fFormat" class="bg-ink-850 border border-ink-700 rounded-lg px-2 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-orange"></select>
+          <select id="fAngle" class="bg-ink-850 border border-ink-700 rounded-lg px-2 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-orange"></select>
+        </div>
+      </div>
+      <div class="overflow-x-auto scrollbar">
+        <table class="w-full text-sm min-w-[1080px]">
+          <thead class="bg-ink-850 text-slate-500 uppercase text-[10px] tracking-wider">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium">Date</th>
+              <th class="px-4 py-3 text-left font-medium">Hook</th>
+              <th class="px-4 py-3 text-left font-medium">Platform</th>
+              <th class="px-4 py-3 text-left font-medium">Format</th>
+              <th class="px-4 py-3 text-left font-medium">Angle</th>
+              <th class="px-4 py-3 text-right font-medium">Views</th>
+              <th class="px-4 py-3 text-right font-medium">Eng.</th>
+              <th class="px-4 py-3 text-right font-medium">Leads</th>
+              <th class="px-4 py-3 text-right font-medium">Opt-in</th>
+              <th class="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody id="logBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="mt-8 text-center text-xs text-slate-600">
+      <span id="footerNote"></span> · Opt-in rate = leads ÷ views, the cleanest signal of content quality.
+    </footer>
+  </div>
+
+  <!-- Add/Edit modal -->
+  <div id="modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-start justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-ink-900 border border-ink-800 rounded-2xl p-6 md:p-8 w-full max-w-2xl my-8">
+      <div class="accent-rule mb-3"></div>
+      <h3 id="modalTitle" class="text-xl font-bold text-white mb-1">Log a post</h3>
+      <p class="text-sm text-slate-400 mb-6">Date defaults to today. Fill in what you have — views and leads are what matter most.</p>
+      <form id="postForm" class="space-y-4">
+        <input type="hidden" name="id">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <label class="block"><span class="lbl">Date</span>
+            <input name="date" type="date" required class="fld"></label>
+          <label class="block"><span class="lbl">Platform</span>
+            <select name="platform" class="fld"></select></label>
+          <label class="block"><span class="lbl">Format</span>
+            <select name="format" class="fld"></select></label>
+          <label class="block"><span class="lbl">Account <span class="text-slate-600">(opt)</span></span>
+            <input name="account" type="text" placeholder="@handle" class="fld"></label>
+        </div>
+        <label class="block"><span class="lbl">Hook / topic</span>
+          <input name="hook" type="text" required placeholder='e.g. "We closed a $7.5k deal with 2 DMs"' class="fld"></label>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <label class="block"><span class="lbl">Angle</span>
+            <select name="angle" class="fld"></select></label>
+          <label class="block"><span class="lbl">CTA type</span>
+            <select name="cta" class="fld"></select></label>
+          <label class="block"><span class="lbl">Keyword <span class="text-slate-600">(opt)</span></span>
+            <input name="keyword" type="text" placeholder="e.g. CLIENTS" class="fld"></label>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <label class="block"><span class="lbl">Views</span>
+            <input name="views" type="number" min="0" class="fld num"></label>
+          <label class="block"><span class="lbl text-orange-light">Leads</span>
+            <input name="leads" type="number" min="0" class="fld num border-orange/40"></label>
+          <label class="block"><span class="lbl">Post URL <span class="text-slate-600">(opt)</span></span>
+            <input name="postUrl" type="url" placeholder="https://…" class="fld"></label>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <label class="block"><span class="lbl">Likes</span>
+            <input name="likes" type="number" min="0" class="fld num"></label>
+          <label class="block"><span class="lbl">Comments</span>
+            <input name="comments" type="number" min="0" class="fld num"></label>
+          <label class="block"><span class="lbl">Shares</span>
+            <input name="shares" type="number" min="0" class="fld num"></label>
+          <label class="block"><span class="lbl">Saves</span>
+            <input name="saves" type="number" min="0" class="fld num"></label>
+        </div>
+        <label class="block"><span class="lbl">Notes <span class="text-slate-600">(opt)</span></span>
+          <textarea name="notes" rows="2" placeholder="What worked, what to repeat…" class="fld resize-none"></textarea></label>
+
+        <details class="bg-ink-850 border border-ink-800 rounded-lg px-4 py-3">
+          <summary class="text-xs uppercase tracking-wider text-slate-500 cursor-pointer select-none">Funnel (optional · for later)</summary>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+            <label class="block"><span class="lbl">Books</span><input name="books" type="number" min="0" class="fld num"></label>
+            <label class="block"><span class="lbl">Calls scheduled</span><input name="callsScheduled" type="number" min="0" class="fld num"></label>
+            <label class="block"><span class="lbl">Show-ups</span><input name="showUps" type="number" min="0" class="fld num"></label>
+            <label class="block"><span class="lbl">Closes</span><input name="closes" type="number" min="0" class="fld num"></label>
+            <label class="block"><span class="lbl">Revenue ($)</span><input name="revenue" type="number" min="0" class="fld num"></label>
+            <label class="block"><span class="lbl">Cash collected ($)</span><input name="cashCollected" type="number" min="0" class="fld num"></label>
+          </div>
+        </details>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" id="btnCancel" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-ink-800 transition">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-orange hover:bg-orange-light text-black font-semibold transition">Save post</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Connect modal -->
+  <div id="connectModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-start justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-ink-900 border border-ink-800 rounded-2xl p-6 md:p-8 w-full max-w-xl my-8">
+      <div class="accent-rule mb-3"></div>
+      <h3 class="text-xl font-bold text-white mb-1">Connect your Google Sheet</h3>
+      <p class="text-sm text-slate-400 mb-5">Data lives in a Sheet you own. The tracker reads and writes through a tiny Apps Script web app.</p>
+
+      <ol class="text-sm text-slate-400 space-y-1.5 mb-5 list-decimal list-inside marker:text-orange">
+        <li>Open your Sheet → <span class="text-slate-200">Extensions → Apps Script</span>.</li>
+        <li>Paste the backend script (button below), then <span class="text-slate-200">Save</span>.</li>
+        <li><span class="text-slate-200">Deploy → New deployment → Web app</span>. Execute as <span class="text-slate-200">Me</span>, access <span class="text-slate-200">Anyone</span>.</li>
+        <li>Copy the <span class="text-slate-200">/exec</span> URL and paste it below.</li>
+      </ol>
+
+      <button id="btnCopyScript" class="text-xs px-3 py-1.5 rounded-lg bg-ink-800 hover:bg-ink-700 text-orange-light border border-ink-700 mb-5 transition">Copy backend script</button>
+
+      <label class="block mb-3"><span class="lbl">Web app URL</span>
+        <input id="cfgUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" class="fld"></label>
+      <label class="block mb-5"><span class="lbl">Secret <span class="text-slate-600">(optional, only if you set one in the script)</span></span>
+        <input id="cfgSecret" type="text" placeholder="leave blank if unused" class="fld"></label>
+
+      <div id="connectStatus" class="text-xs mb-4"></div>
+
+      <div class="flex justify-between items-center gap-2">
+        <button id="btnDisconnect" class="text-xs text-slate-500 hover:text-red-400 transition">Disconnect</button>
+        <div class="flex gap-2">
+          <button id="btnConnectCancel" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-ink-800 transition">Close</button>
+          <button id="btnSaveCfg" class="px-5 py-2 rounded-lg bg-orange hover:bg-orange-light text-black font-semibold transition">Save & sync</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 right-5 z-[60] space-y-2"></div>
+
+  <style>
+    .lbl { display:block; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; margin-bottom:0.35rem; }
+    .fld { width:100%; background:#1a1a1f; border:1px solid #26262d; border-radius:0.5rem; padding:0.5rem 0.75rem; color:#fff; font-size:0.875rem; }
+    .fld:focus { outline:none; border-color:#ff6a00; }
+  </style>
+
+  <script>
+    // ---------- config ----------
+    const CFG_KEY  = 'content-tracker.cfg.v1';
+    const DATA_KEY = 'content-tracker.data.v1';
+    const PLATFORMS = ['Instagram', 'Facebook'];
+    const FORMATS   = ['Reel', 'Carousel'];
+    const ANGLES = ['Authority', 'Credibility / proof', 'Belief-break', 'Objection-crush',
+                    'Desire / lifestyle (LARP)', 'Little win', '$10k framing', '$100k flex', 'Other'];
+    const CTAS = ['Comment keyword', 'Reply to story', 'DM a word', 'Link in bio', 'None'];
+    const NUM_FIELDS = ['views','likes','comments','shares','saves','leads',
+                        'books','callsScheduled','showUps','closes','revenue','cashCollected'];
+    const ALL_FIELDS = ['id','date','platform','format','account','hook','angle','cta','keyword',
+                        'views','likes','comments','shares','saves','leads','postUrl','notes',
+                        'books','callsScheduled','showUps','closes','revenue','cashCollected'];
+
+    let cfg  = loadCfg();
+    let data = loadData();
+    let editingId = null;
+
+    if (!data.length && !cfg.url) { data = seed(); saveData(); }
+
+    // ---------- storage ----------
+    function loadCfg()  { try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; } catch { return {}; } }
+    function saveCfg()  { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
+    function loadData() { try { return JSON.parse(localStorage.getItem(DATA_KEY)) || []; } catch { return []; } }
+    function saveData() { localStorage.setItem(DATA_KEY, JSON.stringify(data)); }
+
+    // ---------- helpers ----------
+    const fmt = n => Math.round(+n || 0).toLocaleString();
+    const pct = (num, den) => !den ? '—' : ((num / den) * 100).toFixed(2) + '%';
+    const rate = (num, den) => !den ? 0 : (num / den);
+    const eng = p => (+p.likes||0)+(+p.comments||0)+(+p.shares||0)+(+p.saves||0);
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const safeUrl = u => /^https?:\/\//i.test(String(u||'')) ? String(u) : '';
+    const coerce = p => { const o = {...p}; NUM_FIELDS.forEach(f => o[f] = +o[f] || 0); return o; };
+
+    function toast(msg, kind) {
+      const el = document.createElement('div');
+      const color = kind === 'err' ? 'border-red-500/50 text-red-300' : kind === 'ok' ? 'border-orange/50 text-orange-light' : 'border-ink-700 text-slate-300';
+      el.className = `bg-ink-900 border ${color} rounded-lg px-4 py-2.5 text-sm shadow-xl`;
+      el.textContent = msg;
+      document.getElementById('toast').appendChild(el);
+      setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 2600);
+    }
+
+    // ---------- backend sync ----------
+    async function sync() {
+      if (!cfg.url) { renderAll(); return; }
+      try {
+        const r = await fetch(cfg.url, { method: 'GET' });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'bad response');
+        data = (j.rows || []).map(coerce);
+        saveData(); renderAll();
+        toast('Synced ' + data.length + ' posts from Sheet', 'ok');
+      } catch (e) {
+        toast('Sync failed — showing local cache', 'err');
+        renderAll();
+      }
+    }
+
+    async function push(payload) {
+      if (!cfg.url) return;
+      try {
+        await fetch(cfg.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // text/plain = no CORS preflight
+          body: JSON.stringify({ ...payload, secret: cfg.secret || '' })
+        });
+      } catch (e) {
+        toast('Sheet write failed — saved locally', 'err');
+      }
+    }
+
+    // ---------- aggregation ----------
+    function totals() {
+      const t = { posts: data.length, views:0, leads:0, eng:0 };
+      data.forEach(p => { t.views += +p.views||0; t.leads += +p.leads||0; t.eng += eng(p); });
+      return t;
+    }
+    function groupBy(key) {
+      const m = {};
+      data.forEach(p => {
+        const k = p[key] || '—';
+        if (!m[k]) m[k] = { label:k, views:0, leads:0, posts:0 };
+        m[k].views += +p.views||0; m[k].leads += +p.leads||0; m[k].posts++;
+      });
+      return Object.values(m);
+    }
+
+    // ---------- rendering ----------
+    function renderAll() { renderKpis(); renderDiagnostic(); renderFormat(); renderPlatform(); renderAngles(); renderTrend(); renderTop(); renderLog(); renderStatus(); renderFooter(); }
+
+    function renderStatus() {
+      const pill = document.getElementById('statusPill');
+      if (cfg.url) { pill.className = 'text-[11px] px-2.5 py-1 rounded-full border border-orange/50 text-orange-light flex items-center gap-1.5'; pill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-orange inline-block"></span> Sheet connected'; }
+      else { pill.className = 'text-[11px] px-2.5 py-1 rounded-full border border-ink-700 text-slate-400 flex items-center gap-1.5'; pill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block"></span> Local only'; }
+    }
+    function renderFooter() {
+      document.getElementById('footerNote').textContent = cfg.url ? (data.length + ' posts in your Sheet') : (data.length + ' posts (local demo — connect a Sheet to save)');
+    }
+
+    function renderKpis() {
+      const t = totals();
+      const optin = rate(t.leads, t.views) * 100;
+      const cards = [
+        { label:'Posts', value: fmt(t.posts) },
+        { label:'Views', value: fmt(t.views) },
+        { label:'Leads', value: fmt(t.leads), accent:true },
+        { label:'Opt-in rate', value: t.views ? optin.toFixed(2)+'%' : '—', accent:true, sub:'leads ÷ views' },
+        { label:'Engagement', value: fmt(t.eng) },
+        { label:'Leads / post', value: t.posts ? (t.leads/t.posts).toFixed(1) : '—' },
+      ];
+      document.getElementById('kpis').innerHTML = cards.map(k => `
+        <div class="bg-ink-900 border ${k.accent ? 'border-orange/40' : 'border-ink-800'} rounded-2xl p-4 md:p-5">
+          <div class="text-[10px] uppercase tracking-wider ${k.accent ? 'text-orange' : 'text-slate-500'} mb-2">${k.label}</div>
+          <div class="text-2xl md:text-3xl font-bold ${k.accent ? 'text-orange-light' : 'text-white'} num leading-none">${k.value}</div>
+          <div class="text-[11px] text-slate-500 mt-2">${k.sub || '&nbsp;'}</div>
+        </div>`).join('');
+    }
+
+    function renderDiagnostic() {
+      const box = document.getElementById('diagnostic');
+      const t = totals();
+      if (t.posts < 2 || !t.views) { box.classList.add('hidden'); return; }
+      const fmts = groupBy('format').filter(g => g.views > 0).sort((a,b) => rate(b.leads,b.views) - rate(a.leads,a.views));
+      const angles = groupBy('angle').filter(g => g.views > 500).sort((a,b) => rate(b.leads,b.views) - rate(a.leads,a.views));
+      const bits = [];
+      if (fmts.length >= 2) bits.push(`<span class="text-white">${esc(fmts[0].label)}s</span> pull leads best (${pct(fmts[0].leads,fmts[0].views)} opt-in vs ${pct(fmts[fmts.length-1].leads,fmts[fmts.length-1].views)} for ${esc(fmts[fmts.length-1].label.toLowerCase())}s)`);
+      if (angles.length >= 2) bits.push(`top angle is <span class="text-white">${esc(angles[0].label)}</span> at ${pct(angles[0].leads,angles[0].views)}, weakest is <span class="text-white">${esc(angles[angles.length-1].label)}</span> at ${pct(angles[angles.length-1].leads,angles[angles.length-1].views)}`);
+      box.classList.remove('hidden');
+      document.getElementById('diagnosticText').innerHTML = bits.length ? ('Across ' + t.posts + ' posts, ' + bits.join('. ') + '. Make more of what converts, not what gets views.') : 'Log a few more posts to surface what converts.';
+    }
+
+    function barRow(label, leads, views, posts, maxRate) {
+      const r = rate(leads, views);
+      const w = maxRate > 0 ? Math.max((r / maxRate) * 100, r > 0 ? 5 : 0) : 0;
+      return `
+        <div>
+          <div class="flex items-center justify-between text-sm mb-1.5">
+            <span class="text-slate-300">${esc(label)}</span>
+            <span class="num text-slate-400"><span class="text-orange-light font-semibold">${pct(leads,views)}</span> · ${fmt(leads)} leads · ${posts} post${posts===1?'':'s'}</span>
+          </div>
+          <div class="h-3 bg-ink-800 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-orange-dim via-orange to-orange-light rounded-full transition-all duration-500" style="width:${w}%"></div>
+          </div>
+        </div>`;
+    }
+    function renderGroupBars(elId, key, allowed) {
+      let items = groupBy(key);
+      if (allowed) items = allowed.map(a => items.find(i => i.label === a)).filter(Boolean);
+      items = items.filter(i => i.posts > 0);
+      const el = document.getElementById(elId);
+      if (!items.length) { el.innerHTML = '<p class="text-sm text-slate-600">No data yet.</p>'; return; }
+      const maxRate = Math.max(...items.map(i => rate(i.leads, i.views)), 0.0001);
+      items.sort((a,b) => rate(b.leads,b.views) - rate(a.leads,a.views));
+      el.innerHTML = items.map(i => barRow(i.label, i.leads, i.views, i.posts, maxRate)).join('');
+    }
+    const renderFormat   = () => renderGroupBars('formatBars', 'format', FORMATS);
+    const renderPlatform = () => renderGroupBars('platformBars', 'platform', PLATFORMS);
+    const renderAngles   = () => renderGroupBars('angleBars', 'angle');
+
+    function renderTrend() {
+      const el = document.getElementById('trendBars');
+      const days = [];
+      const today = new Date();
+      for (let i = 13; i >= 0; i--) { const d = new Date(today); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); }
+      const byDay = {}; days.forEach(d => byDay[d] = 0);
+      data.forEach(p => { if (byDay[p.date] !== undefined) byDay[p.date] += +p.leads||0; });
+      const max = Math.max(...days.map(d => byDay[d]), 1);
+      const total = days.reduce((s,d) => s + byDay[d], 0);
+      document.getElementById('trendMeta').textContent = total + ' leads';
+      el.innerHTML = days.map(d => {
+        const v = byDay[d]; const h = Math.max((v/max)*100, v>0?6:2);
+        const dd = d.slice(8,10);
+        return `<div class="flex-1 flex flex-col items-center justify-end h-full group">
+            <div class="text-[9px] text-slate-500 mb-1 num opacity-0 group-hover:opacity-100 transition">${v}</div>
+            <div class="w-full ${v>0?'bg-gradient-to-t from-orange-dim to-orange':'bg-ink-800'} rounded-sm transition-all" style="height:${h}%" title="${d}: ${v} leads"></div>
+            <div class="text-[9px] text-slate-600 mt-1.5 num">${dd}</div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderTop() {
+      const el = document.getElementById('topPosts');
+      const top = [...data].sort((a,b) => (+b.leads||0)-(+a.leads||0)).slice(0,5).filter(p => (+p.leads||0) > 0);
+      if (!top.length) { el.innerHTML = '<p class="text-sm text-slate-600">No leads logged yet.</p>'; return; }
+      const max = +top[0].leads || 1;
+      el.innerHTML = top.map(p => {
+        const w = Math.max(((+p.leads||0)/max)*100, 8);
+        const url = safeUrl(p.postUrl);
+        const hook = url ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="text-white hover:text-orange-light transition">${esc(p.hook||'(untitled)')}</a>` : `<span class="text-white">${esc(p.hook||'(untitled)')}</span>`;
+        return `<div class="relative bg-ink-850 rounded-lg overflow-hidden">
+            <div class="absolute inset-y-0 left-0 bg-orange/10" style="width:${w}%"></div>
+            <div class="relative flex items-center justify-between px-4 py-2.5 gap-3">
+              <div class="min-w-0 flex-1"><div class="truncate text-sm">${hook}</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">${esc(p.format||'')} · ${esc(p.platform||'')} · ${esc(p.angle||'')}</div></div>
+              <div class="text-right shrink-0 num"><div class="text-orange-light font-bold">${fmt(p.leads)} leads</div>
+                <div class="text-[11px] text-slate-500">${pct(+p.leads,+p.views)} · ${fmt(p.views)} views</div></div>
+            </div></div>`;
+      }).join('');
+    }
+
+    function applyFilters(rows) {
+      const q = document.getElementById('search').value.trim().toLowerCase();
+      const fp = document.getElementById('fPlatform').value;
+      const ff = document.getElementById('fFormat').value;
+      const fa = document.getElementById('fAngle').value;
+      return rows.filter(p =>
+        (!q || String(p.hook||'').toLowerCase().includes(q)) &&
+        (!fp || p.platform === fp) && (!ff || p.format === ff) && (!fa || p.angle === fa));
+    }
+    function renderLog() {
+      const body = document.getElementById('logBody');
+      let rows = applyFilters([...data]).sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
+      if (!rows.length) {
+        body.innerHTML = `<tr><td colspan="10" class="px-6 py-12 text-center text-slate-500">No posts. Hit <span class="text-orange font-medium">+ Log post</span> to add one.</td></tr>`;
+        return;
+      }
+      body.innerHTML = rows.map(p => `
+        <tr class="border-t border-ink-800 hover:bg-ink-850/60 transition">
+          <td class="px-4 py-3 text-slate-400 num whitespace-nowrap">${esc(p.date)}</td>
+          <td class="px-4 py-3 text-white max-w-[280px] truncate">${esc(p.hook)}</td>
+          <td class="px-4 py-3 text-slate-400">${esc(p.platform)}</td>
+          <td class="px-4 py-3"><span class="text-[11px] px-2 py-0.5 rounded-full border border-ink-700 text-slate-300">${esc(p.format)}</span></td>
+          <td class="px-4 py-3 text-slate-400 text-xs">${esc(p.angle)}</td>
+          <td class="px-4 py-3 text-right num text-slate-300">${fmt(p.views)}</td>
+          <td class="px-4 py-3 text-right num text-slate-400">${fmt(eng(p))}</td>
+          <td class="px-4 py-3 text-right num text-white font-semibold">${fmt(p.leads)}</td>
+          <td class="px-4 py-3 text-right num text-orange-light font-semibold">${pct(+p.leads,+p.views)}</td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">
+            <button class="text-slate-500 hover:text-orange-light text-xs transition mr-2" data-edit="${esc(p.id)}">Edit</button>
+            <button class="text-slate-600 hover:text-red-400 text-xs transition" data-del="${esc(p.id)}">Remove</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    // ---------- modal ----------
+    function fillSelect(sel, opts, withBlank) {
+      sel.innerHTML = (withBlank ? '<option value="">All</option>' : '') + opts.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+    }
+    const modal = document.getElementById('modal');
+    function openModal(post) {
+      editingId = post ? post.id : null;
+      document.getElementById('modalTitle').textContent = post ? 'Edit post' : 'Log a post';
+      const f = document.getElementById('postForm');
+      f.reset();
+      f.elements['id'].value = post ? post.id : '';
+      if (post) { ALL_FIELDS.forEach(k => { const el = f.elements[k]; if (el && k !== 'id') el.value = post[k] ?? ''; }); }
+      else { f.elements['date'].value = new Date().toISOString().slice(0,10); }
+      modal.classList.remove('hidden'); modal.classList.add('flex');
+      f.elements['hook'].focus();
+    }
+    function closeModal() { modal.classList.add('hidden'); modal.classList.remove('flex'); document.getElementById('postForm').reset(); editingId = null; }
+
+    document.getElementById('postForm').onsubmit = e => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const rec = {};
+      ALL_FIELDS.forEach(k => rec[k] = fd.get(k) ?? '');
+      NUM_FIELDS.forEach(k => rec[k] = +fd.get(k) || 0);
+      rec.id = rec.id || (Date.now().toString(36) + Math.random().toString(36).slice(2,6));
+      const i = data.findIndex(p => p.id === rec.id);
+      if (i >= 0) data[i] = rec; else data.push(rec);
+      saveData(); renderAll(); closeModal();
+      push({ action: 'upsert', record: rec });
+    };
+
+    // ---------- events ----------
+    document.getElementById('btnAdd').onclick = () => openModal(null);
+    document.getElementById('btnCancel').onclick = closeModal;
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    document.getElementById('logBody').addEventListener('click', e => {
+      const editId = e.target.dataset.edit, delId = e.target.dataset.del;
+      if (editId) { const p = data.find(x => x.id === editId); if (p) openModal(p); }
+      if (delId && confirm('Remove this post?')) {
+        data = data.filter(x => x.id !== delId);
+        saveData(); renderAll(); push({ action: 'delete', id: delId });
+      }
+    });
+
+    ['search','fPlatform','fFormat','fAngle'].forEach(id => {
+      document.getElementById(id).addEventListener('input', renderLog);
+    });
+
+    document.getElementById('btnSync').onclick = sync;
+
+    // connect modal
+    const cModal = document.getElementById('connectModal');
+    document.getElementById('btnConnect').onclick = () => {
+      document.getElementById('cfgUrl').value = cfg.url || '';
+      document.getElementById('cfgSecret').value = cfg.secret || '';
+      document.getElementById('connectStatus').innerHTML = cfg.url ? '<span class="text-orange-light">Connected.</span>' : '<span class="text-slate-500">Not connected — running on local demo data.</span>';
+      cModal.classList.remove('hidden'); cModal.classList.add('flex');
+    };
+    const closeConnect = () => { cModal.classList.add('hidden'); cModal.classList.remove('flex'); };
+    document.getElementById('btnConnectCancel').onclick = closeConnect;
+    cModal.addEventListener('click', e => { if (e.target === cModal) closeConnect(); });
+    document.getElementById('btnSaveCfg').onclick = async () => {
+      cfg.url = document.getElementById('cfgUrl').value.trim();
+      cfg.secret = document.getElementById('cfgSecret').value.trim();
+      saveCfg(); closeConnect();
+      if (cfg.url) await sync(); else { renderAll(); }
+    };
+    document.getElementById('btnDisconnect').onclick = () => {
+      cfg = {}; saveCfg(); closeConnect(); toast('Disconnected — local only'); renderAll();
+    };
+    document.getElementById('btnCopyScript').onclick = () => {
+      navigator.clipboard.writeText(BACKEND_SCRIPT).then(() => toast('Backend script copied — paste into Apps Script', 'ok'),
+        () => toast('Copy failed — grab apps-script.gs from the repo', 'err'));
+    };
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { if (!modal.classList.contains('hidden')) closeModal(); if (!cModal.classList.contains('hidden')) closeConnect(); }
+    });
+
+    // export / import
+    document.getElementById('btnExport').onclick = () => {
+      const csv = [ALL_FIELDS, ...data.map(p => ALL_FIELDS.map(f => p[f] ?? ''))]
+        .map(r => r.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+      a.download = 'content_' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click(); URL.revokeObjectURL(a.href);
+    };
+    document.getElementById('btnImport').onclick = () => document.getElementById('fileInput').click();
+    document.getElementById('fileInput').onchange = e => {
+      const file = e.target.files[0]; if (!file) return;
+      const r = new FileReader();
+      r.onload = ev => {
+        const text = ev.target.result.replace(/^﻿/, '');
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        const headers = parseCsvLine(lines[0]).map(h => h.trim());
+        const imported = [];
+        lines.slice(1).forEach(line => {
+          const c = parseCsvLine(line); if (!c.length || !c.some(x => x)) return;
+          const rec = {}; headers.forEach((h,i) => { if (ALL_FIELDS.includes(h)) rec[h] = c[i]; });
+          NUM_FIELDS.forEach(k => rec[k] = +rec[k] || 0);
+          rec.id = rec.id || (Date.now().toString(36) + Math.random().toString(36).slice(2,6) + imported.length);
+          imported.push(rec);
+        });
+        data = data.concat(imported); saveData(); renderAll();
+        toast('Imported ' + imported.length + ' posts', 'ok');
+        if (cfg.url && imported.length) push({ action: 'bulk', records: imported });
+      };
+      r.readAsText(file); e.target.value = '';
+    };
+    function parseCsvLine(line) {
+      const out = []; let cur = '', inQ = false;
+      for (let i = 0; i < line.length; i++) { const c = line[i];
+        if (inQ) { if (c === '"' && line[i+1] === '"') { cur += '"'; i++; } else if (c === '"') inQ = false; else cur += c; }
+        else { if (c === ',') { out.push(cur); cur = ''; } else if (c === '"') inQ = true; else cur += c; } }
+      out.push(cur); return out;
+    }
+
+    // ---------- seed demo ----------
+    function seed() {
+      const today = new Date();
+      const ago = d => { const x = new Date(today); x.setDate(x.getDate()-d); return x.toISOString().slice(0,10); };
+      const mk = (o) => ({ id: Math.random().toString(36).slice(2,9), account:'', keyword:'', notes:'',
+        likes:0, comments:0, shares:0, saves:0, books:0, callsScheduled:0, showUps:0, closes:0, revenue:0, cashCollected:0, postUrl:'', ...o });
+      return [
+        mk({ date: ago(1),  platform:'Instagram', format:'Carousel', hook:'We closed a $7.5k deal with 2 DMs', angle:'Little win',                cta:'Comment keyword', keyword:'CLIENTS', views:8800,  leads:212, likes:540, comments:90, shares:60, saves:310 }),
+        mk({ date: ago(2),  platform:'Facebook',  format:'Carousel', hook:"You don't need 100k followers to get clients", angle:'Objection-crush', cta:'Comment keyword', keyword:'START', views:5400, leads:163, likes:300, comments:70, shares:40, saves:180 }),
+        mk({ date: ago(3),  platform:'Instagram', format:'Reel',     hook:'Student went 0 to $4k in 3 weeks', angle:'Credibility / proof',          cta:'DM a word', keyword:'PROOF', views:19000, leads:241, likes:1200, comments:140, shares:210, saves:430 }),
+        mk({ date: ago(4),  platform:'Instagram', format:'Carousel', hook:"Why posting more isn't your problem", angle:'Belief-break',             cta:'Link in bio', views:7200, leads:176, likes:410, comments:55, shares:48, saves:260 }),
+        mk({ date: ago(5),  platform:'Instagram', format:'Reel',     hook:"How I'd get to $10k/mo with one offer", angle:'$10k framing',           cta:'Comment keyword', keyword:'TENK', views:42000, leads:384, likes:3100, comments:260, shares:520, saves:980 }),
+        mk({ date: ago(6),  platform:'Instagram', format:'Reel',     hook:'The 3-engine info business model', angle:'Authority',                    cta:'Link in bio', views:23000, leads:188, likes:1500, comments:120, shares:240, saves:610 }),
+        mk({ date: ago(8),  platform:'Facebook',  format:'Reel',     hook:'$100k month full breakdown', angle:'$100k flex',                         cta:'None', views:65000, leads:92, likes:2400, comments:180, shares:140, saves:220 }),
+        mk({ date: ago(10), platform:'Instagram', format:'Reel',     hook:'Day in the life · McLaren + villa', angle:'Desire / lifestyle (LARP)',  cta:'None', views:91000, leads:121, likes:5200, comments:300, shares:410, saves:340 }),
+      ];
+    }
+
+    // ---------- backend script string (for the copy button) ----------
+    const BACKEND_SCRIPT = `/**
+ * Content Tracker - Google Sheet backend (Apps Script Web App)
+ * 1. Sheet -> Extensions -> Apps Script. Paste this, Save.
+ * 2. Deploy -> New deployment -> Web app. Execute as Me, access Anyone.
+ * 3. Copy the /exec URL into the tracker's Connect dialog.
+ */
+var SHEET_NAME = 'Content';
+var SECRET = ''; // optional password; put the same value in the Connect dialog
+var HEADERS = ['id','date','platform','format','account','hook','angle','cta','keyword','views','likes','comments','shares','saves','leads','postUrl','notes','books','callsScheduled','showUps','closes','revenue','cashCollected'];
+function getSheet(){var ss=SpreadsheetApp.getActiveSpreadsheet();var sh=ss.getSheetByName(SHEET_NAME);if(!sh)sh=ss.insertSheet(SHEET_NAME);if(sh.getLastRow()===0)sh.appendRow(HEADERS);return sh;}
+function getIds(sh){var last=sh.getLastRow();if(last<2)return [];return sh.getRange(2,1,last-1,1).getValues().map(function(r){return String(r[0]);});}
+function doGet(e){var sh=getSheet();var values=sh.getDataRange().getValues();var headers=values.shift()||HEADERS;var rows=[];values.forEach(function(r){if(r[0]==='')return;var o={};headers.forEach(function(h,i){o[h]=r[i];});rows.push(o);});return json({ok:true,rows:rows});}
+function doPost(e){var body={};try{body=JSON.parse(e.postData.contents);}catch(err){}if(SECRET&&body.secret!==SECRET)return json({ok:false,error:'unauthorized'});var sh=getSheet();
+if(body.action==='upsert'){var rec=body.record||{};var ids=getIds(sh);var rowData=HEADERS.map(function(h){return rec[h]!==undefined&&rec[h]!==null?rec[h]:'';});var idx=ids.indexOf(String(rec.id));if(idx>=0)sh.getRange(idx+2,1,1,HEADERS.length).setValues([rowData]);else sh.appendRow(rowData);return json({ok:true});}
+if(body.action==='delete'){var ids2=getIds(sh);var i2=ids2.indexOf(String(body.id));if(i2>=0)sh.deleteRow(i2+2);return json({ok:true});}
+if(body.action==='bulk'){(body.records||[]).forEach(function(rec){sh.appendRow(HEADERS.map(function(h){return rec[h]!==undefined&&rec[h]!==null?rec[h]:'';}));});return json({ok:true});}
+return json({ok:false,error:'unknown action'});}
+function json(obj){return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);}`;
+
+    // ---------- init ----------
+    fillSelect(document.querySelector('select[name=platform]'), PLATFORMS, false);
+    fillSelect(document.querySelector('select[name=format]'), FORMATS, false);
+    fillSelect(document.querySelector('select[name=angle]'), ANGLES, false);
+    fillSelect(document.querySelector('select[name=cta]'), CTAS, false);
+    fillSelect(document.getElementById('fPlatform'), PLATFORMS, true);
+    fillSelect(document.getElementById('fFormat'), FORMATS, true);
+    fillSelect(document.getElementById('fAngle'), ANGLES, true);
+
+    renderAll();
+    if (cfg.url) sync();
+  </script>
+</body>
+</html>
