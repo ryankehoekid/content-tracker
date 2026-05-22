@@ -284,7 +284,10 @@
     let editingId = null;
 
     const SEEDED_KEY = 'content-tracker.seeded.v1';
-    if (!data.length && !cfg.url && !localStorage.getItem(SEEDED_KEY)) { data = seed(); saveData(); localStorage.setItem(SEEDED_KEY, '1'); }
+    if (!localStorage.getItem(SEEDED_KEY)) {
+      if (!data.length && !cfg.url) { data = seed(); saveData(); }
+      localStorage.setItem(SEEDED_KEY, '1'); // never auto-seed again, even after deleting all
+    }
 
     // ---------- storage ----------
     function loadCfg()  { try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; } catch { return {}; } }
