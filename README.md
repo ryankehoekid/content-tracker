@@ -1,6 +1,6 @@
 # Content Tracker
 
-A single-file content tracker for the AGI Academy info-business model. Tracks every
+A single-file content tracker for the Revive Yourself info-business model. Tracks every
 reel and lead-magnet post across Instagram + Facebook, and judges them on the metric
 the blueprint says matters most: **opt-in rate (leads ÷ views)**, not vanity views.
 
