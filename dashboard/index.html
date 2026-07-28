@@ -200,11 +200,12 @@ const REPLIES_CSV_URL   = "";
 function sheetCsvUrl(tab) {
   const m = String(SHEET_URL).match(/\/d\/([\w-]+)/);
   if (!m) return "";
-  // headers=0 makes Google export every row raw. Without it, the export
-  // merges the sheet's instruction rows into the column labels, which
-  // breaks name-based column matching.
+  // Default export: Google folds the sheet's instruction rows into the
+  // column labels (so column names arrive as suffixes of longer text, which
+  // colIndex handles). headers=0 is worse: raw rows get type-coerced and
+  // the header text row comes back blanked.
   return "https://docs.google.com/spreadsheets/d/" + m[1]
-    + "/gviz/tq?tqx=out:csv&headers=0&sheet=" + encodeURIComponent(tab);
+    + "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(tab);
 }
 const DAILY_URL   = DAILY_LOG_CSV_URL || sheetCsvUrl(DAILY_LOG_TAB);
 const REPLIES_URL = REPLIES_CSV_URL || sheetCsvUrl(REPLIES_TAB);
