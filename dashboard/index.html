@@ -131,6 +131,11 @@
   .chain-final .big { font-size: 56px; color: var(--red); line-height: 1; }
   @media (min-width: 768px) { .chain-final .big { font-size: 72px; } }
 
+  .capcheck { margin-top: 18px; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .capgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (min-width: 640px) { .capgrid { grid-template-columns: repeat(6, 1fr); } }
+  .capgrid .cv { font-size: 16px; margin-top: 4px; }
+
   /* progress */
   .pbar { height: 18px; background: var(--ink); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; margin: 14px 0 8px; }
   .pbar .fill { height: 100%; background: var(--red); border-radius: 9px 0 0 9px; transition: width .4s ease; }
@@ -570,7 +575,7 @@ function FunnelView({ m }) {
    revenue signed is shown alongside for the full picture.
 ============================================================================ */
 function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCashPerClose }) {
-  const { goal, deal, aov, showRate, closeRate } = calc;
+  const { goal, deal, aov, showRate, closeRate, capacity, sendDays } = calc;
   const set = (k) => (v) => setCalc({ ...calc, [k]: v });
 
   const replyNoData = !(liveReplyRate > 0);
@@ -578,14 +583,29 @@ function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCas
   const replyRate = replyNoData ? FALLBACK_REPLY_RATE : liveReplyRate;
   const bookingRate = bookingNoData ? FALLBACK_BOOKING_RATE : liveBookingRate;
 
-  const daysLeft = daysRemainingInMonth(new Date());
   const clientsNeeded = safeDiv(goal, aov);
   const contractRevenue = clientsNeeded * deal;
   const callsToShow = safeDiv(clientsNeeded, closeRate);
   const callsToBook = safeDiv(callsToShow, showRate);
   const repliesNeeded = safeDiv(callsToBook, bookingRate);
   const initialsNeeded = safeDiv(repliesNeeded, replyRate);
-  const perDay = safeDiv(initialsNeeded, daysLeft);
+
+  // Timeline at real capacity, instead of an impossible per-day demand.
+  const sendingDaysNeeded = safeDiv(initialsNeeded, capacity);
+  const weeksToGoal = safeDiv(sendingDaysNeeded, sendDays / 4.345);
+  const timeToGoal = !(capacity > 0) ? null
+    : weeksToGoal < 1 ? fmtNum(sendingDaysNeeded, 0) + " days"
+    : weeksToGoal < 9 ? fmtNum(weeksToGoal, 1) + " weeks"
+    : fmtNum(weeksToGoal / 4.345, 1) + " months";
+
+  // Forward pass: what the current capacity supports in a month.
+  const capInitials = capacity * sendDays;
+  const capReplies = capInitials * replyRate;
+  const capBooked = capReplies * bookingRate;
+  const capShows = capBooked * showRate;
+  const capCloses = capShows * closeRate;
+  const capCash = capCloses * aov;
+  const capPct = safeDiv(capCash, goal);
 
   const numField = (label, val, setter, step, hint) => (
     <div className="field">
@@ -636,6 +656,8 @@ function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCas
             ? "avg order value. live actual: " + fmtEuro(liveCashPerClose)
             : "avg order value, the upfront payment")}
         {numField("Full deal value (€)", deal, set("deal"), 500, "the whole contract, plans included")}
+        {numField("Max initials per day", capacity, set("capacity"), 10, "what the setter can realistically send")}
+        {numField("Sending days per month", sendDays, set("sendDays"), 1, "6 days a week is 26")}
         {slider("Show rate", showRate, set("showRate"), 0.1, 1, 0.025)}
         {slider("Close rate", closeRate, set("closeRate"), 0.025, 0.6, 0.0125)}
         {liveRow("Reply rate", replyRate, replyNoData)}
@@ -649,9 +671,29 @@ function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCas
         {chainRow("Calls to book", fmtNum(callsToBook, 1), "/ " + fmtPct(showRate) + " show rate")}
         {chainRow("Replies needed", fmtNum(repliesNeeded, 0), "/ " + fmtPct(bookingRate) + " booking rate")}
         {chainRow("Initials needed", fmtInt(initialsNeeded), "/ " + fmtPct(replyRate) + " reply rate")}
+        {chainRow("Sending days needed", fmtNum(sendingDaysNeeded, 0), "at " + fmtInt(capacity) + " initials a day")}
         <div className="chain-final">
-          <div className="mono label-lg">Initials per day, {daysLeft} days left this month</div>
-          <div className="display big">{fmtInt(Math.ceil(perDay))}</div>
+          <div className="mono label-lg">Time to bank {fmtEuro(goal)} at {fmtInt(capacity)} a day</div>
+          <div className="display big" style={{ fontSize: 52 }}>{timeToGoal || "set capacity"}</div>
+        </div>
+      </div>
+
+      <div className="capcheck">
+        <div className="mono label-lg" style={{ marginBottom: 10 }}>
+          Capacity check: what {fmtInt(capacity)} a day supports, per month
+        </div>
+        <div className="capgrid">
+          <div><div className="mono label">Initials</div><div className="display cv">{fmtInt(capInitials)}</div></div>
+          <div><div className="mono label">Replies</div><div className="display cv">{fmtNum(capReplies, 0)}</div></div>
+          <div><div className="mono label">Booked</div><div className="display cv">{fmtNum(capBooked, 0)}</div></div>
+          <div><div className="mono label">Shows</div><div className="display cv">{fmtNum(capShows, 0)}</div></div>
+          <div><div className="mono label">Closes</div><div className="display cv">{fmtNum(capCloses, 1)}</div></div>
+          <div><div className="mono label">Cash</div><div className="display cv" style={{ color: C.red }}>{fmtEuro(capCash)}</div></div>
+        </div>
+        <div className="chart-note">
+          {capPct >= 1
+            ? "That covers the monthly goal with room to spare. Volume is not the constraint."
+            : "That is " + fmtPct(capPct, 0) + " of the " + fmtEuro(goal) + " monthly goal. Closing the gap means better rates, higher cash per close, or more sending capacity, not a bigger daily quota."}
         </div>
       </div>
     </div>
@@ -662,7 +704,7 @@ function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCas
    Progress to goal (always the current calendar month)
 ============================================================================ */
 function ProgressPanel({ allDaily, allReplies, calc, liveReplyRate, liveBookingRate }) {
-  const { goal, aov, showRate, closeRate } = calc;
+  const { goal, aov, showRate, closeRate, capacity } = calc;
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -718,7 +760,11 @@ function ProgressPanel({ allDaily, allReplies, calc, liveReplyRate, liveBookingR
           <div className="display n">{fmtInt(actualDaily)}</div>
         </div>
       </div>
-      <div className="chart-note">Cash is counted in the month the lead replied. Required pace uses the calculator's settings: {fmtEuro(aov)} cash per close, {fmtPct(showRate)} show, {fmtPct(closeRate)} close.</div>
+      <div className="chart-note">
+        Cash is counted in the month the lead replied. Required pace uses the calculator's settings: {fmtEuro(aov)} cash per close, {fmtPct(showRate)} show, {fmtPct(closeRate)} close.
+        {gap > 0 && capacity > 0 && dailyRequired > capacity &&
+          " That pace is above the " + fmtInt(capacity) + " a day capacity, so the rest of this goal realistically lands next month: about " + fmtInt(Math.ceil(safeDiv(initialsNeeded, capacity))) + " more sending days at capacity."}
+      </div>
     </div>
   );
 }
@@ -879,7 +925,7 @@ function App() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   // Shared planning inputs: the goal calculator edits them, progress uses them.
-  const [calc, setCalc] = useState({ goal: 30000, deal: 10000, aov: 5000, showRate: 0.7, closeRate: 0.175 });
+  const [calc, setCalc] = useState({ goal: 30000, deal: 10000, aov: 5000, showRate: 0.7, closeRate: 0.175, capacity: 100, sendDays: 26 });
 
   const load = useCallback(async () => {
     setLoading(true);
