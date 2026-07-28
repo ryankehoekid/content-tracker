@@ -574,7 +574,7 @@ function FunnelView({ m }) {
    contract value, so the goal math tracks money in the bank. Contract
    revenue signed is shown alongside for the full picture.
 ============================================================================ */
-function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCashPerClose }) {
+function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCashPerClose, liveShowRate, liveCloseRate, liveBooked, liveShown }) {
   const { goal, deal, aov, showRate, closeRate, capacity, sendDays } = calc;
   const set = (k) => (v) => setCalc({ ...calc, [k]: v });
 
@@ -615,7 +615,7 @@ function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCas
       {hint && <div className="hint">{hint}</div>}
     </div>
   );
-  const slider = (label, val, setter, min, max, step) => (
+  const slider = (label, val, setter, min, max, step, hint) => (
     <div className="field">
       <label className="mono label-lg">
         {label} <Badge kind="manual">Manual</Badge>
@@ -623,6 +623,7 @@ function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCas
       </label>
       <input type="range" min={min} max={max} step={step} value={val}
         onChange={(e) => setter(parseFloat(e.target.value))} />
+      {hint && <div className="hint">{hint}</div>}
     </div>
   );
   const liveRow = (label, val, noData) => (
@@ -658,8 +659,14 @@ function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCas
         {numField("Full deal value (€)", deal, set("deal"), 500, "the whole contract, plans included")}
         {numField("Max initials per day", capacity, set("capacity"), 10, "what the setter can realistically send")}
         {numField("Sending days per month", sendDays, set("sendDays"), 1, "6 days a week is 26")}
-        {slider("Show rate", showRate, set("showRate"), 0.1, 1, 0.025)}
-        {slider("Close rate", closeRate, set("closeRate"), 0.025, 0.6, 0.0125)}
+        {slider("Show rate", showRate, set("showRate"), 0.1, 1, 0.025,
+          liveBooked > 0
+            ? "live actual: " + fmtPct(liveShowRate) + " from " + fmtInt(liveBooked) + " booked. adjust the slider as this firms up"
+            : "no booked calls yet, baseline assumption")}
+        {slider("Close rate", closeRate, set("closeRate"), 0.025, 0.6, 0.0125,
+          liveShown > 0
+            ? "live actual: " + fmtPct(liveCloseRate) + " from " + fmtInt(liveShown) + " shows. adjust the slider as this firms up"
+            : "no shows yet, baseline assumption")}
         {liveRow("Reply rate", replyRate, replyNoData)}
         {liveRow("Booking rate", bookingRate, bookingNoData)}
       </div>
@@ -1067,7 +1074,9 @@ function App() {
       <div className="grid2 mt">
         <GoalCalculator calc={calc} setCalc={setCalc}
           liveReplyRate={m.replyRate} liveBookingRate={m.bookingRate}
-          liveCashPerClose={safeDiv(m.cash, m.closed)} />
+          liveCashPerClose={safeDiv(m.cash, m.closed)}
+          liveShowRate={m.showRate} liveCloseRate={m.closeRate}
+          liveBooked={m.booked} liveShown={m.shown} />
         <div>
           <VolumeChart daily={fDaily} />
           <div className="mt"><LagCharts daily={fDaily} replies={fReplies} /></div>
