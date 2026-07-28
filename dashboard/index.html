@@ -117,6 +117,7 @@
   .field input[type=number]:focus { outline: none; border-color: var(--steel); }
   input[type=range] { width: 100%; accent-color: var(--red); height: 22px; }
   .rate-val { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--bone); }
+  .hint { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--steel); letter-spacing: .05em; margin-top: 6px; }
 
   .chain { margin-top: 20px; border-top: 1px solid var(--line); }
   .chain-row {
@@ -186,7 +187,7 @@
    While nothing is configured the app runs on built-in sample data, clearly
    badged in the UI.
 ============================================================================ */
-const SHEET_URL = "";           // normal Google Sheet share link
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1HL4DISJ2mdz8BYm8qH0s385mV2eD4kkwMo9LGi45MDU/edit?usp=sharing";
 const DAILY_LOG_TAB = "Daily Log";
 const REPLIES_TAB   = "Replies";
 
@@ -553,13 +554,14 @@ function FunnelView({ m }) {
 }
 
 /* ============================================================================
-   Goal calculator
+   Goal calculator. The cash chain divides by cash per close (what a client
+   actually pays up front, most deals are payment plans), not the full
+   contract value, so the goal math tracks money in the bank. Contract
+   revenue signed is shown alongside for the full picture.
 ============================================================================ */
-function GoalCalculator({ liveReplyRate, liveBookingRate }) {
-  const [goal, setGoal] = useState(30000);
-  const [deal, setDeal] = useState(10000);
-  const [showRate, setShowRate] = useState(0.7);
-  const [closeRate, setCloseRate] = useState(0.175);
+function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCashPerClose }) {
+  const { goal, deal, aov, showRate, closeRate } = calc;
+  const set = (k) => (v) => setCalc({ ...calc, [k]: v });
 
   const replyNoData = !(liveReplyRate > 0);
   const bookingNoData = !(liveBookingRate > 0);
@@ -567,28 +569,30 @@ function GoalCalculator({ liveReplyRate, liveBookingRate }) {
   const bookingRate = bookingNoData ? FALLBACK_BOOKING_RATE : liveBookingRate;
 
   const daysLeft = daysRemainingInMonth(new Date());
-  const clientsNeeded = safeDiv(goal, deal);
+  const clientsNeeded = safeDiv(goal, aov);
+  const contractRevenue = clientsNeeded * deal;
   const callsToShow = safeDiv(clientsNeeded, closeRate);
   const callsToBook = safeDiv(callsToShow, showRate);
   const repliesNeeded = safeDiv(callsToBook, bookingRate);
   const initialsNeeded = safeDiv(repliesNeeded, replyRate);
   const perDay = safeDiv(initialsNeeded, daysLeft);
 
-  const numField = (label, val, set, step) => (
+  const numField = (label, val, setter, step, hint) => (
     <div className="field">
       <label className="mono label-lg">{label}</label>
       <input type="number" min="0" step={step} value={val}
-        onChange={(e) => set(Math.max(0, toNumber(e.target.value)))} />
+        onChange={(e) => setter(Math.max(0, toNumber(e.target.value)))} />
+      {hint && <div className="hint">{hint}</div>}
     </div>
   );
-  const slider = (label, val, set, min, max, step) => (
+  const slider = (label, val, setter, min, max, step) => (
     <div className="field">
       <label className="mono label-lg">
         {label} <Badge kind="manual">Manual</Badge>
         <span className="rate-val" style={{ float: "right" }}>{fmtPct(val)}</span>
       </label>
       <input type="range" min={min} max={max} step={step} value={val}
-        onChange={(e) => set(parseFloat(e.target.value))} />
+        onChange={(e) => setter(parseFloat(e.target.value))} />
     </div>
   );
   const liveRow = (label, val, noData) => (
@@ -616,16 +620,21 @@ function GoalCalculator({ liveReplyRate, liveBookingRate }) {
     <div className="card">
       <h2 className="sec">Goal Calculator</h2>
       <div className="calc-inputs">
-        {numField("Monthly cash goal (€)", goal, setGoal, 1000)}
-        {numField("Deal value (€)", deal, setDeal, 500)}
-        {slider("Show rate", showRate, setShowRate, 0.1, 1, 0.025)}
-        {slider("Close rate", closeRate, setCloseRate, 0.025, 0.6, 0.0125)}
+        {numField("Monthly cash goal (€)", goal, set("goal"), 1000)}
+        {numField("Cash per close (€)", aov, set("aov"), 500,
+          liveCashPerClose > 0
+            ? "avg order value. live actual: " + fmtEuro(liveCashPerClose)
+            : "avg order value, the upfront payment")}
+        {numField("Full deal value (€)", deal, set("deal"), 500, "the whole contract, plans included")}
+        {slider("Show rate", showRate, set("showRate"), 0.1, 1, 0.025)}
+        {slider("Close rate", closeRate, set("closeRate"), 0.025, 0.6, 0.0125)}
         {liveRow("Reply rate", replyRate, replyNoData)}
         {liveRow("Booking rate", bookingRate, bookingNoData)}
       </div>
 
       <div className="chain">
-        {chainRow("Clients needed", fmtNum(clientsNeeded, 1), fmtEuro(goal) + " / " + fmtEuro(deal))}
+        {chainRow("Clients to close", fmtNum(clientsNeeded, 1), fmtEuro(goal) + " goal / " + fmtEuro(aov) + " cash per close")}
+        {chainRow("Contract revenue signed", fmtEuro(contractRevenue), fmtNum(clientsNeeded, 1) + " clients x " + fmtEuro(deal) + " deal, rest lands later")}
         {chainRow("Calls that must show", fmtNum(callsToShow, 1), "/ " + fmtPct(closeRate) + " close rate")}
         {chainRow("Calls to book", fmtNum(callsToBook, 1), "/ " + fmtPct(showRate) + " show rate")}
         {chainRow("Replies needed", fmtNum(repliesNeeded, 0), "/ " + fmtPct(bookingRate) + " booking rate")}
@@ -642,8 +651,8 @@ function GoalCalculator({ liveReplyRate, liveBookingRate }) {
 /* ============================================================================
    Progress to goal (always the current calendar month)
 ============================================================================ */
-function ProgressPanel({ allDaily, allReplies, liveReplyRate, liveBookingRate }) {
-  const goal = 30000, deal = 10000, showRate = 0.7, closeRate = 0.175;
+function ProgressPanel({ allDaily, allReplies, calc, liveReplyRate, liveBookingRate }) {
+  const { goal, aov, showRate, closeRate } = calc;
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -656,7 +665,7 @@ function ProgressPanel({ allDaily, allReplies, liveReplyRate, liveBookingRate })
   const replyRate = liveReplyRate > 0 ? liveReplyRate : FALLBACK_REPLY_RATE;
   const bookingRate = liveBookingRate > 0 ? liveBookingRate : FALLBACK_BOOKING_RATE;
 
-  const closesNeeded = Math.ceil(safeDiv(gap, deal));
+  const closesNeeded = Math.ceil(safeDiv(gap, aov));
   const callsNeeded = Math.ceil(safeDiv(safeDiv(closesNeeded, closeRate), showRate));
   const initialsNeeded = Math.ceil(safeDiv(safeDiv(safeDiv(safeDiv(closesNeeded, closeRate), showRate), bookingRate), replyRate));
   const dailyRequired = Math.ceil(safeDiv(initialsNeeded, daysLeft));
@@ -699,7 +708,7 @@ function ProgressPanel({ allDaily, allReplies, liveReplyRate, liveBookingRate })
           <div className="display n">{fmtInt(actualDaily)}</div>
         </div>
       </div>
-      <div className="chart-note">Cash is counted in the month the lead replied. Required pace uses the calculator's baseline rates: {fmtPct(showRate)} show, {fmtPct(closeRate)} close.</div>
+      <div className="chart-note">Cash is counted in the month the lead replied. Required pace uses the calculator's settings: {fmtEuro(aov)} cash per close, {fmtPct(showRate)} show, {fmtPct(closeRate)} close.</div>
     </div>
   );
 }
@@ -859,6 +868,8 @@ function App() {
   const [range, setRange] = useState("all");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  // Shared planning inputs: the goal calculator edits them, progress uses them.
+  const [calc, setCalc] = useState({ goal: 30000, deal: 10000, aov: 5000, showRate: 0.7, closeRate: 0.175 });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -981,9 +992,9 @@ function App() {
             <div className="sub">What one cold DM is worth. The scaling decision number.</div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div className="mono label">Total deal value</div>
+            <div className="mono label">Contract revenue signed</div>
             <div className="display" style={{ fontSize: 24, margin: "6px 0" }}>{fmtEuro(m.dealValue)}</div>
-            <div className="sub">avg deal <b>{fmtEuro(m.avgDeal)}</b></div>
+            <div className="sub">avg deal <b>{fmtEuro(m.avgDeal)}</b> · avg collected per close <b>{fmtEuro(safeDiv(m.cash, m.closed))}</b></div>
           </div>
         </div>
       </section>
@@ -993,12 +1004,14 @@ function App() {
           <h2 className="sec">The Funnel</h2>
           <FunnelView m={m} />
         </div>
-        <ProgressPanel allDaily={daily || []} allReplies={replies || []}
+        <ProgressPanel allDaily={daily || []} allReplies={replies || []} calc={calc}
           liveReplyRate={m.replyRate} liveBookingRate={m.bookingRate} />
       </div>
 
       <div className="grid2 mt">
-        <GoalCalculator liveReplyRate={m.replyRate} liveBookingRate={m.bookingRate} />
+        <GoalCalculator calc={calc} setCalc={setCalc}
+          liveReplyRate={m.replyRate} liveBookingRate={m.bookingRate}
+          liveCashPerClose={safeDiv(m.cash, m.closed)} />
         <div>
           <VolumeChart daily={fDaily} />
           <div className="mt"><LagCharts daily={fDaily} replies={fReplies} /></div>
