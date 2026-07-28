@@ -200,8 +200,11 @@ const REPLIES_CSV_URL   = "";
 function sheetCsvUrl(tab) {
   const m = String(SHEET_URL).match(/\/d\/([\w-]+)/);
   if (!m) return "";
+  // headers=0 makes Google export every row raw. Without it, the export
+  // merges the sheet's instruction rows into the column labels, which
+  // breaks name-based column matching.
   return "https://docs.google.com/spreadsheets/d/" + m[1]
-    + "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(tab);
+    + "/gviz/tq?tqx=out:csv&headers=0&sheet=" + encodeURIComponent(tab);
 }
 const DAILY_URL   = DAILY_LOG_CSV_URL || sheetCsvUrl(DAILY_LOG_TAB);
 const REPLIES_URL = REPLIES_CSV_URL || sheetCsvUrl(REPLIES_TAB);
@@ -307,11 +310,17 @@ function findHeaderRow(rows, mustInclude) {
   }
   return -1;
 }
+// Exact header match wins, then endsWith (covers labels an export prefixed
+// with other text), then a substring as the last resort. A loose substring
+// alone can hit the wrong column when stray text mentions a column name.
 function colIndex(headerCells, ...names) {
   const cells = headerCells.map((c) => String(c || "").trim().toLowerCase());
-  for (const name of names) {
-    const i = cells.findIndex((c) => c.includes(name));
-    if (i !== -1) return i;
+  for (const pass of ["exact", "ends", "includes"]) {
+    for (const name of names) {
+      const i = cells.findIndex((c) =>
+        pass === "exact" ? c === name : pass === "ends" ? c.endsWith(name) : c.includes(name));
+      if (i !== -1) return i;
+    }
   }
   return -1;
 }
@@ -329,9 +338,9 @@ function parseDailyLog(csvText) {
   const ci = {
     date: colIndex(H, "date"),
     setter: colIndex(H, "setter"),
-    initials: colIndex(H, "initial"),
-    followUps: colIndex(H, "follow"),
-    notes: colIndex(H, "note"),
+    initials: colIndex(H, "initials sent", "initial"),
+    followUps: colIndex(H, "follow ups sent", "follow"),
+    notes: colIndex(H, "notes", "note"),
   };
   const body = rows.slice(h + 1).filter((r) => !isJunkRow(r));
   const parseDate = makeDateParser(body.map((r) => r[ci.date]));
@@ -359,16 +368,16 @@ function parseReplies(csvText) {
   if (h === -1) throw new Error("Replies: could not find the header row (needs Date Replied and Handle columns).");
   const H = rows[h];
   const ci = {
-    date: colIndex(H, "date"),
+    date: colIndex(H, "date replied", "date"),
     handle: colIndex(H, "handle"),
     name: colIndex(H, "name"),
-    booked: colIndex(H, "book"),
-    showed: colIndex(H, "show"),
-    closed: colIndex(H, "close"),
-    dealValue: colIndex(H, "deal"),
-    cash: colIndex(H, "cash"),
-    plan: colIndex(H, "plan"),
-    notes: colIndex(H, "note"),
+    booked: colIndex(H, "booked", "book"),
+    showed: colIndex(H, "showed", "show"),
+    closed: colIndex(H, "closed", "close"),
+    dealValue: colIndex(H, "deal value", "deal"),
+    cash: colIndex(H, "cash collected", "cash"),
+    plan: colIndex(H, "payment plan", "plan"),
+    notes: colIndex(H, "notes", "note"),
   };
   const body = rows.slice(h + 1).filter((r) => !isJunkRow(r));
   const parseDate = makeDateParser(body.map((r) => r[ci.date]));
