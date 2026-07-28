@@ -61,3 +61,17 @@ webinar dashboard.
   demo data so the dashboard looks alive. Connect a Sheet to make it real and
   shareable across your team's devices.
 - Export / Import CSV covers all columns — handy for migrating existing sheets in.
+
+---
+
+## KEHOEGROUP Sales Dashboard (`/dashboard`)
+
+A separate single-file app at [`dashboard/index.html`](dashboard/index.html): an
+outreach-to-cash dashboard for the KEHOEGROUP DM funnel (initials -> replies ->
+booked -> shown -> closed). Reads two published-to-web CSV tabs from a Google
+Sheet ("Daily Log" and "Replies").
+
+Setup: in the Sheet, **File -> Share -> Publish to web**, pick each tab as
+**CSV**, and paste the two URLs into `DAILY_LOG_CSV_URL` and `REPLIES_CSV_URL`
+in the CONFIG block at the top of `dashboard/index.html`. Until then it runs on
+clearly badged sample data. Vercel serves it at `/dashboard/` with no build step.
