@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KEHOEGROUP. Sales Dashboard</title>
+<title>KEHOEGROUP. Sales Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -172,12 +172,38 @@
 
 <script type="text/babel" data-presets="env,react">
 /* ============================================================================
-   CONFIG - paste your two published Google Sheet CSV URLs here.
-   File > Share > Publish to web > select the tab > CSV > copy link.
-   Leave blank to run on built-in sample data (clearly badged in the UI).
+   CONFIG - wire the dashboard to the Google Sheet. One-time setup, then it
+   stays live: the app re-pulls the sheet on every page load and every 5
+   minutes. Nothing is ever downloaded or uploaded by hand.
+
+   EASIEST: in the sheet hit Share > General access > "Anyone with the link"
+   (Viewer), then paste the sheet's normal URL into SHEET_URL below. The two
+   tab names must match the sheet's tab names.
+
+   ALTERNATIVE: leave SHEET_URL blank and use File > Share > Publish to web
+   to publish each tab as CSV, pasting the two links into the explicit URLs.
+
+   While nothing is configured the app runs on built-in sample data, clearly
+   badged in the UI.
 ============================================================================ */
-const DAILY_LOG_CSV_URL = "";   // Tab 1: "Daily Log"
-const REPLIES_CSV_URL   = "";   // Tab 2: "Replies"
+const SHEET_URL = "";           // normal Google Sheet share link
+const DAILY_LOG_TAB = "Daily Log";
+const REPLIES_TAB   = "Replies";
+
+// Optional override: explicit published-to-web CSV links per tab.
+const DAILY_LOG_CSV_URL = "";
+const REPLIES_CSV_URL   = "";
+
+// A link-shared sheet exposes each tab as CSV through Google's gviz endpoint;
+// updates show up in near real time, no republish step involved.
+function sheetCsvUrl(tab) {
+  const m = String(SHEET_URL).match(/\/d\/([\w-]+)/);
+  if (!m) return "";
+  return "https://docs.google.com/spreadsheets/d/" + m[1]
+    + "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(tab);
+}
+const DAILY_URL   = DAILY_LOG_CSV_URL || sheetCsvUrl(DAILY_LOG_TAB);
+const REPLIES_URL = REPLIES_CSV_URL || sheetCsvUrl(REPLIES_TAB);
 
 // 'DMY' (Irish sheets), 'MDY', or 'auto' to detect from the data.
 const DATE_FORMAT = "auto";
@@ -822,7 +848,7 @@ function RangePicker({ range, setRange, customFrom, setCustomFrom, customTo, set
 /* ============================================================================
    App
 ============================================================================ */
-const usingSampleData = !DAILY_LOG_CSV_URL || !REPLIES_CSV_URL;
+const usingSampleData = !DAILY_URL || !REPLIES_URL;
 
 function App() {
   const [daily, setDaily] = useState(null);
@@ -846,7 +872,7 @@ function App() {
         const bust = "cb=" + Date.now();
         const join = (u) => u + (u.includes("?") ? "&" : "?") + bust;
         const [r1, r2] = await Promise.all([
-          fetch(join(DAILY_LOG_CSV_URL)), fetch(join(REPLIES_CSV_URL)),
+          fetch(join(DAILY_URL)), fetch(join(REPLIES_URL)),
         ]);
         if (!r1.ok) throw new Error("Daily Log fetch failed (" + r1.status + ").");
         if (!r2.ok) throw new Error("Replies fetch failed (" + r2.status + ").");
@@ -891,7 +917,7 @@ function App() {
         <div className="card" style={{ maxWidth: 460 }}>
           <div className="mono label-lg" style={{ color: C.red, marginBottom: 10 }}>Data feed problem</div>
           <p style={{ fontSize: 14, lineHeight: 1.6, color: C.bone }}>{error}</p>
-          <p className="chart-note">Check the sheet is published to the web as CSV and the URLs in the CONFIG block are correct.</p>
+          <p className="chart-note">Check the sheet is shared as "Anyone with the link" and the tab names in the CONFIG block match the sheet's tabs exactly.</p>
           <button className="btn" style={{ marginTop: 14 }} onClick={load}>Retry</button>
         </div>
       </div>
@@ -904,7 +930,7 @@ function App() {
         <div>
           <Wordmark />
           <div className="mono label-lg" style={{ marginTop: 8 }}>
-            Sales Dashboard {usingSampleData && <Badge kind="sample">Sample data</Badge>}
+            Sales Tracker {usingSampleData && <Badge kind="sample">Sample data</Badge>}
           </div>
         </div>
         <div className="pillrow">
@@ -921,9 +947,10 @@ function App() {
         <div className="card setup" style={{ marginBottom: 12 }}>
           <div className="mono label-lg" style={{ color: C.red, marginBottom: 8 }}>Not wired to the sheet yet</div>
           <p style={{ fontSize: 13, lineHeight: 1.6, color: C.steel }}>
-            You are looking at generated sample data. Publish the two Google Sheet tabs to the
-            web as CSV, then paste the URLs into <code>DAILY_LOG_CSV_URL</code> and{" "}
-            <code>REPLIES_CSV_URL</code> at the top of <code>dashboard/index.html</code>.
+            You are looking at generated sample data. One-time setup: in the Google Sheet,
+            set Share to "Anyone with the link" (Viewer), then paste the sheet's URL into{" "}
+            <code>SHEET_URL</code> at the top of <code>dashboard/index.html</code>. From then
+            on the tracker pulls the sheet live, on every open and every 5 minutes.
           </p>
         </div>
       )}

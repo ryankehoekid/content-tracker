@@ -64,14 +64,17 @@ webinar dashboard.
 
 ---
 
-## KEHOEGROUP Sales Dashboard (`/dashboard`)
+## KEHOEGROUP Sales Tracker (`/dashboard`)
 
 A separate single-file app at [`dashboard/index.html`](dashboard/index.html): an
-outreach-to-cash dashboard for the KEHOEGROUP DM funnel (initials -> replies ->
-booked -> shown -> closed). Reads two published-to-web CSV tabs from a Google
-Sheet ("Daily Log" and "Replies").
+outreach-to-cash tracker for the KEHOEGROUP DM funnel (initials -> replies ->
+booked -> shown -> closed). Reads the "Daily Log" and "Replies" tabs of a
+Google Sheet live.
 
-Setup: in the Sheet, **File -> Share -> Publish to web**, pick each tab as
-**CSV**, and paste the two URLs into `DAILY_LOG_CSV_URL` and `REPLIES_CSV_URL`
-in the CONFIG block at the top of `dashboard/index.html`. Until then it runs on
-clearly badged sample data. Vercel serves it at `/dashboard/` with no build step.
+One-time setup: in the Sheet, **Share -> General access -> Anyone with the link
+(Viewer)**, then paste the sheet's normal URL into `SHEET_URL` in the CONFIG
+block at the top of `dashboard/index.html`. From then on the tracker pulls the
+sheet on every open and every 5 minutes; nothing is downloaded by hand.
+(Publish-to-web CSV links still work as an explicit override.) Until configured
+it runs on clearly badged sample data. Vercel serves it at `/dashboard/` with
+no build step.
