@@ -162,6 +162,17 @@
   .hz-n { color: var(--steel); } .hz-n .hdot { background: var(--steel); }
   .hdetail { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--steel); letter-spacing: 0.04em; }
 
+  /* diagnosis */
+  .diag-row { background: var(--ink); border: 1px solid var(--line); border-left-width: 3px; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .diag-title { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+  .diag-ev { font-size: 12px; color: var(--steel); line-height: 1.55; margin-bottom: 7px; }
+  .diag-lever { font-size: 12px; color: var(--bone); line-height: 1.5; }
+  .diag-lever span { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--red); margin-right: 6px; }
+
+  /* week over week */
+  .wdelta { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.04em; margin-top: 5px; }
+  .wdelta.up { color: #4CAF6D; } .wdelta.down { color: var(--red); } .wdelta.flat { color: var(--steel); }
+
   /* pipeline */
   .pipe-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .pipe-row:last-of-type { border-bottom: none; }
@@ -252,6 +263,15 @@ const FALLBACK_REPLY_RATE   = 0.04;
 const FALLBACK_BOOKING_RATE = 0.30;
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000; // re-pull the sheet every 5 minutes
+
+// KPI bands for the diagnosis engine: [floor, strong]. Seeded with cold IG DM
+// norms. Edit to internal targets, the engine reads them live.
+const KPI = {
+  replyRate: [0.03, 0.06],
+  bookingRate: [0.25, 0.40],
+  showRate: [0.60, 0.80],
+  closeRate: [0.15, 0.30],
+};
 
 /* ============================================================================
    Colors (Blood & Ink)
@@ -421,6 +441,9 @@ function parseReplies(csvText) {
     cash: colIndex(H, "cash collected", "cash"),
     plan: colIndex(H, "payment plan", "plan"),
     notes: colIndex(H, "notes", "note"),
+    // Optional column, tolerated when absent: the time of day the reply
+    // landed. Captured raw now, analyzed once the sheet carries it.
+    time: colIndex(H, "time replied", "time"),
   };
   const body = rows.slice(h + 1).filter((r) => !isJunkRow(r));
   const parseDate = makeDateParser(body.map((r) => r[ci.date]));
@@ -439,6 +462,7 @@ function parseReplies(csvText) {
       cash: toNumber(r[ci.cash]),
       paymentPlan: toBool(r[ci.plan]),
       notes: String(r[ci.notes] || "").trim(),
+      timeReplied: ci.time !== -1 ? String(r[ci.time] || "").trim() : "",
     });
   }
   out.sort((a, b) => a.date - b.date);
@@ -547,14 +571,39 @@ function Badge({ kind, children }) {
   return <span className={"badge " + kind}>{children}</span>;
 }
 
-function Tile({ label, value, sub, red }) {
+function Tile({ label, value, sub, red, delta }) {
+  const cls = delta > 0.02 ? "up" : delta < -0.02 ? "down" : "flat";
+  const arrow = delta > 0.02 ? "▲" : delta < -0.02 ? "▼" : "·";
   return (
     <div className="tile">
       <div className="mono tlabel">{label}</div>
       <div className="display val" style={red ? { color: C.red } : null}>{value}</div>
       {sub ? <div className="sub">{sub}</div> : <div className="sub">&nbsp;</div>}
+      {delta !== null && delta !== undefined && (
+        <div className={"wdelta " + cls}>
+          {arrow} {Math.abs(delta) < 0.005 ? "flat" : Math.round(Math.abs(delta) * 100) + "%"} vs last wk
+        </div>
+      )}
     </div>
   );
+}
+
+// Week over week: fixed trailing windows, independent of the range picker.
+// Null when the prior week has no data, so young trackers stay quiet.
+function weekOverWeek(daily, replies) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const cur = (d) => (today - d) / DAY_MS <= 6;
+  const prev = (d) => { const a = (today - d) / DAY_MS; return a >= 7 && a <= 13; };
+  const delta = (c, p) => (p > 0 ? c / p - 1 : null);
+  const sum = (rows, test, f) => rows.filter((r) => test(r.date)).reduce((s, r) => s + f(r), 0);
+  return {
+    initials: delta(sum(daily, cur, (r) => r.initials), sum(daily, prev, (r) => r.initials)),
+    followUps: delta(sum(daily, cur, (r) => r.followUps), sum(daily, prev, (r) => r.followUps)),
+    replies: delta(sum(replies, cur, () => 1), sum(replies, prev, () => 1)),
+    booked: delta(sum(replies, cur, (r) => (r.booked ? 1 : 0)), sum(replies, prev, (r) => (r.booked ? 1 : 0))),
+    cash: delta(sum(replies, cur, (r) => r.cash), sum(replies, prev, (r) => r.cash)),
+  };
 }
 
 /* ============================================================================
@@ -618,18 +667,19 @@ function ladderPerLead(age) {
   if (age <= 3) return 1;       // niche, urgency, results
   return 0;
 }
-function HealthBoard({ daily, replies, capacity }) {
+// Shared signal computation: the health board shows these as zones and the
+// diagnosis engine reasons over the same numbers.
+function computeSignals(daily, replies, capacity) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const byDay = new Map(daily.map((r) => [dayKey(r.date), r]));
 
-  // 1. Initials pace: last 7 logged days vs capacity.
+  // Initials pace: last 7 logged days vs capacity.
   const last7 = daily.slice(-7);
   const pace = last7.length ? last7.reduce((s, r) => s + r.initials, 0) / last7.length : 0;
   const paceRatio = safeDiv(pace, capacity);
-  const paceZone = !last7.length ? "n" : paceRatio >= 0.9 ? "g" : paceRatio >= 0.6 ? "a" : "r";
 
-  // 2. Follow up ladder: sends over the last 14 days vs what the ladder owed.
+  // Follow up ladder: sends over the last 14 days vs what the ladder owed.
   let owed = 0, sent = 0;
   for (let i = 13; i >= 0; i--) {
     const d = new Date(today.getTime() - i * DAY_MS);
@@ -642,24 +692,38 @@ function HealthBoard({ daily, replies, capacity }) {
     }
   }
   const fuRatio = owed > 0 ? sent / owed : null;
-  const fuZone = fuRatio === null ? "n" : fuRatio >= 0.85 ? "g" : fuRatio >= 0.55 ? "a" : "r";
 
-  // 3. Logging discipline: of the last 7 full days (today and Sundays excluded),
-  // how many have an EOD form row.
+  // Logging discipline: of the last 7 full days (today, Sundays and
+  // pre-tracking days excluded), how many have an EOD form row.
   let expectDays = 0, loggedDays = 0;
   const firstLogged = daily.length ? daily[0].date : null;
   for (let i = 7; i >= 1; i--) {
     const d = new Date(today.getTime() - i * DAY_MS);
     if (d.getDay() === 0) continue;
-    if (firstLogged && d < firstLogged) continue; // before tracking existed
+    if (firstLogged && d < firstLogged) continue;
     expectDays++;
     if (byDay.has(dayKey(d))) loggedDays++;
   }
-  const logZone = !daily.length ? "n" : loggedDays >= expectDays ? "g" : loggedDays >= expectDays - 2 ? "a" : "r";
 
-  // 4. Tier 1 discipline: replies never booked, sitting untouched past a week.
+  // Tier 1 discipline: replies never booked, sitting untouched past a week.
   const stale = replies.filter((r) => !r.booked && !r.showed && !r.closed
     && (today - r.date) / DAY_MS > 7).length;
+
+  // Trailing 14 day reply performance, for the messaging verdict.
+  const cut14 = new Date(today.getTime() - 13 * DAY_MS);
+  const init14 = daily.filter((r) => r.date >= cut14).reduce((s, r) => s + r.initials, 0);
+  const replies14 = replies.filter((r) => r.date >= cut14).length;
+
+  return { today, pace, paceRatio, fuRatio, owed, sent, expectDays, loggedDays,
+    stale, init14, replies14, replyRate14: safeDiv(replies14, init14) };
+}
+
+function HealthBoard({ daily, replies, capacity }) {
+  const s = computeSignals(daily, replies, capacity);
+  const { pace, paceRatio, fuRatio, expectDays, loggedDays, stale } = s;
+  const paceZone = !daily.length ? "n" : paceRatio >= 0.9 ? "g" : paceRatio >= 0.6 ? "a" : "r";
+  const fuZone = fuRatio === null ? "n" : fuRatio >= 0.85 ? "g" : fuRatio >= 0.55 ? "a" : "r";
+  const logZone = !daily.length ? "n" : loggedDays >= expectDays ? "g" : loggedDays >= expectDays - 2 ? "a" : "r";
   const staleZone = !replies.length ? "n" : stale === 0 ? "g" : stale <= 2 ? "a" : "r";
 
   const ZONE_WORD = { g: "On track", a: "Falling behind", r: "Off track", n: "No data" };
@@ -691,6 +755,99 @@ function HealthBoard({ daily, replies, capacity }) {
             : stale + (stale === 1 ? " reply" : " replies") + " unbooked past 7 days")}
       </div>
       <div className="chart-note">Ladder model: each new lead owes 5 touches in its first 4 days per the Outreach SOP. The long tail cadence is not scored, it would need per lead send logging.</div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   Diagnosis engine. Rules run in causal order, upstream before downstream:
+   data integrity, then volume, then ladder completion, and only if the ladder
+   is being executed does a weak reply rate get blamed on the message itself.
+   Most replies come from touches 3 to 6, so an incomplete ladder suppresses
+   reply rate before the opener is the problem. Downstream verdicts stay muted
+   until their sample size can carry a conclusion.
+============================================================================ */
+function Diagnosis({ daily, replies, capacity, m }) {
+  const s = computeSignals(daily, replies, capacity);
+  const findings = [];
+  const waiting = [];
+  const add = (sev, title, evidence, lever) => findings.push({ sev, title, evidence, lever });
+
+  if (daily.length && s.expectDays > 0 && s.loggedDays < s.expectDays - 1) {
+    add("r", "Fix the data first",
+      "Only " + s.loggedDays + " of the last " + s.expectDays + " days have an EOD row. Every other number here is guesswork until logging is daily.",
+      "EOD form every working day, no exceptions.");
+  }
+  if (daily.length && s.paceRatio < 0.9) {
+    add(s.paceRatio < 0.6 ? "r" : "a", "Volume below capacity",
+      "Initials running " + fmtInt(s.pace) + " a day against the " + fmtInt(capacity) + " target.",
+      "Protect the morning sending block. Initials go out while the US sleeps, per the system overview.");
+  }
+  const ladderShort = s.fuRatio !== null && s.fuRatio < 0.85;
+  if (ladderShort) {
+    add(s.fuRatio < 0.55 ? "r" : "a", "The ladder is being cut short",
+      "Follow ups are at about " + fmtPct(s.fuRatio, 0) + " of what touches 2 to 6 owe the last 14 days of leads. Most replies come from touches 3 to 6, so this suppresses reply rate before the opener is to blame.",
+      "Finish all 5 ladder touches on every open lead before sourcing new ones. Catch up the recent cohorts first.");
+  }
+  if (s.init14 >= 150) {
+    if (!ladderShort && s.replyRate14 < KPI.replyRate[0]) {
+      add("a", "First touch underperforming",
+        "Ladder execution is healthy but the 14 day reply rate is " + fmtPct(s.replyRate14) + ", under the " + fmtPct(KPI.replyRate[0], 0) + " floor on " + fmtInt(s.init14) + " sends.",
+        "Rotate the opener, check account health and deliverability, tighten sourcing fit.");
+    }
+  } else {
+    waiting.push("messaging verdict (needs 150 initials in 14 days, at " + fmtInt(s.init14) + ")");
+  }
+  if (m.replies >= 10) {
+    if (m.bookingRate < KPI.bookingRate[0]) {
+      add("a", "Replies not turning into booked calls",
+        "Booking rate " + fmtPct(m.bookingRate) + " against a " + fmtPct(KPI.bookingRate[0], 0) + " floor, on " + fmtInt(m.replies) + " replies.",
+        "Review the reply-to-call handling. Tier 1 first every day, ask for the call in about half the messages.");
+    }
+  } else {
+    waiting.push("booking verdict (needs 10 replies, at " + fmtInt(m.replies) + ")");
+  }
+  if (s.stale > 0) {
+    add(s.stale > 2 ? "r" : "a", "Tier 1 leads going stale",
+      s.stale + (s.stale === 1 ? " reply is" : " replies are") + " sitting unbooked past 7 days. Tier 1 never slips.",
+      "Work these today before any new outreach.");
+  }
+  if (m.booked >= 5) {
+    if (m.showRate < KPI.showRate[0]) {
+      add("a", "Booked calls not showing",
+        "Show rate " + fmtPct(m.showRate) + " against a " + fmtPct(KPI.showRate[0], 0) + " floor.",
+        "Confirm the day before and the hour before. Calendar invite plus a personal message.");
+    }
+  } else {
+    waiting.push("show verdict (needs 5 booked, at " + fmtInt(m.booked) + ")");
+  }
+  if (m.shown >= 5) {
+    if (m.closeRate < KPI.closeRate[0]) {
+      add("a", "Shows not closing",
+        "Close rate " + fmtPct(m.closeRate) + " against a " + fmtPct(KPI.closeRate[0], 0) + " floor.",
+        "Review call recordings and the offer framing. This is a sales call problem, not an outreach problem.");
+    }
+  } else {
+    waiting.push("close verdict (needs 5 shows, at " + fmtInt(m.shown) + ")");
+  }
+
+  const top = findings.slice(0, 3);
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <h2 className="sec">Diagnosis, what to fix first</h2>
+      {top.length === 0 && (
+        <div className="hzone hz-g" style={{ margin: 0 }}><span className="hdot" />No binding constraint visible. Push volume to capacity and keep the ladder at 5 touches.</div>
+      )}
+      {top.map((f, i) => (
+        <div className="diag-row" key={i} style={{ borderLeftColor: f.sev === "r" ? C.red : "#C9A227" }}>
+          <div className="diag-title">{i + 1}. {f.title}</div>
+          <div className="diag-ev">{f.evidence}</div>
+          <div className="diag-lever"><span>Lever</span> {f.lever}</div>
+        </div>
+      ))}
+      {waiting.length > 0 && (
+        <div className="chart-note">On mute until the sample can carry it: {waiting.join("; ")}.</div>
+      )}
     </div>
   );
 }
@@ -1136,6 +1293,7 @@ function App() {
   const fDaily = useMemo(() => (daily || []).filter((r) => inRange(r.date)), [daily, range, customFrom, customTo]);
   const fReplies = useMemo(() => (replies || []).filter((r) => inRange(r.date)), [replies, range, customFrom, customTo]);
   const m = useMemo(() => computeMetrics(fDaily, fReplies), [fDaily, fReplies]);
+  const wow = useMemo(() => weekOverWeek(daily || [], replies || []), [daily, replies]);
 
   if (loading && !daily) {
     return (
@@ -1198,17 +1356,18 @@ function App() {
 
       {/* Headline tiles */}
       <section className="tiles">
-        <Tile label="Initials sent" value={fmtInt(m.initials)} sub={<span><b>{fmtInt(safeDiv(m.initials, fDaily.length))}</b> per logged day</span>} />
-        <Tile label="Follow ups sent" value={fmtInt(m.followUps)} sub={<span><b>{fmtNum(safeDiv(m.followUps, m.initials), 1)}</b> per initial</span>} />
+        <Tile label="Initials sent" value={fmtInt(m.initials)} delta={wow.initials} sub={<span><b>{fmtInt(safeDiv(m.initials, fDaily.length))}</b> per logged day</span>} />
+        <Tile label="Follow ups sent" value={fmtInt(m.followUps)} delta={wow.followUps} sub={<span><b>{fmtNum(safeDiv(m.followUps, m.initials), 1)}</b> per initial</span>} />
         <Tile label="Total touches" value={fmtInt(m.touches)} sub={<span>initials + follow ups</span>} />
-        <Tile label="Replies" value={fmtInt(m.replies)} sub={<span><b>{fmtPct(m.replyRate)}</b> reply rate</span>} />
-        <Tile label="Calls booked" value={fmtInt(m.booked)} sub={<span><b>{fmtPct(m.bookingRate)}</b> of replies</span>} />
+        <Tile label="Replies" value={fmtInt(m.replies)} delta={wow.replies} sub={<span><b>{fmtPct(m.replyRate)}</b> reply rate</span>} />
+        <Tile label="Calls booked" value={fmtInt(m.booked)} delta={wow.booked} sub={<span><b>{fmtPct(m.bookingRate)}</b> of replies</span>} />
         <Tile label="Calls shown" value={fmtInt(m.shown)} sub={<span><b>{fmtPct(m.showRate)}</b> show rate</span>} />
         <Tile label="Clients closed" value={fmtInt(m.closed)} sub={<span><b>{fmtPct(m.closeRate)}</b> close rate</span>} />
-        <Tile label="Cash collected" value={fmtEuro(m.cash)} red sub={<span><b>{fmtEuro(m.outstanding)}</b> outstanding</span>} />
+        <Tile label="Cash collected" value={fmtEuro(m.cash)} red delta={wow.cash} sub={<span><b>{fmtEuro(m.outstanding)}</b> outstanding</span>} />
       </section>
 
       <HealthBoard daily={daily || []} replies={replies || []} capacity={calc.capacity} />
+      <Diagnosis daily={daily || []} replies={replies || []} capacity={calc.capacity} m={m} />
 
       {/* Cash per initial, featured */}
       <section className="tiles" style={{ gridTemplateColumns: "1fr", marginBottom: 12 }}>
