@@ -186,6 +186,9 @@
   .chip.replied { border: 1px solid var(--line); color: var(--steel); }
 
   /* reply windows */
+  .rw-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .rw-stats > div { background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .rw-big { font-size: 24px; margin: 6px 0 4px; }
   .rw-row { display: flex; align-items: center; gap: 12px; padding: 7px 0; }
   .rw-label { flex: none; width: 138px; }
   .rw-track { flex: 1; height: 10px; background: var(--ink); border-radius: 5px; overflow: hidden; }
@@ -918,6 +921,20 @@ const TIME_BANDS = [
   { label: "Evening", range: "17 to 22", test: (h) => h >= 17 && h < 22 },
   { label: "Late", range: "22 to 06", test: (h) => h >= 22 || h < 6 },
 ];
+// Circular mean so times either side of midnight average correctly
+// (23:30 and 00:30 average to midnight, not noon).
+function meanReplyTime(hours) {
+  let x = 0, y = 0;
+  for (const h of hours) {
+    const a = (h / 24) * 2 * Math.PI;
+    x += Math.cos(a); y += Math.sin(a);
+  }
+  let a = Math.atan2(y, x);
+  if (a < 0) a += 2 * Math.PI;
+  const h = (a / (2 * Math.PI)) * 24;
+  const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+  return String(hh % 24).padStart(2, "0") + ":" + String(mm % 60).padStart(2, "0");
+}
 function ReplyWindows({ replies }) {
   const hours = replies.map((r) => parseReplyHour(r.timeReplied)).filter((h) => h !== null);
   if (!hours.length) return null; // panel appears once the sheet carries times
@@ -927,6 +944,18 @@ function ReplyWindows({ replies }) {
   return (
     <div className="card">
       <h2 className="sec">Reply Windows, Irish time</h2>
+      <div className="rw-stats">
+        <div>
+          <div className="mono label">Best window so far</div>
+          <div className="display rw-big" style={{ color: C.red }}>{TIME_BANDS[top].range.replace(" to ", " - ")}</div>
+          <div className="hdetail">{TIME_BANDS[top].label.toLowerCase()}</div>
+        </div>
+        <div>
+          <div className="mono label">Average reply time</div>
+          <div className="display rw-big">{meanReplyTime(hours)}</div>
+          <div className="hdetail">across {hours.length} timed replies</div>
+        </div>
+      </div>
       {TIME_BANDS.map((b, i) => (
         <div className="rw-row" key={b.label}>
           <span className="mono label rw-label">{b.label} {b.range}</span>
