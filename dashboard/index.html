@@ -301,6 +301,15 @@ function shortDate(d) {
   return d.toLocaleDateString("en-IE", { day: "numeric", month: "short" });
 }
 
+// Log rows can never legitimately be dated in the future; a year typo in the
+// sheet (2027 for 2026) otherwise silently drops the row from every window.
+function fixFutureYear(d) {
+  const limit = Date.now() + 7 * 86400000;
+  let guard = 0;
+  while (d.getTime() > limit && guard++ < 5) d.setFullYear(d.getFullYear() - 1);
+  return d;
+}
+
 // Detect DMY vs MDY across a column of slash-dates, then parse.
 function makeDateParser(rawDates) {
   let fmt = DATE_FORMAT;
@@ -318,17 +327,17 @@ function makeDateParser(rawDates) {
     const str = String(s || "").trim();
     if (!str) return null;
     let m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); // ISO
-    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    if (m) return fixFutureYear(new Date(+m[1], +m[2] - 1, +m[3]));
     m = str.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
     if (m) {
       let y = +m[3]; if (y < 100) y += 2000;
       const a = +m[1], b = +m[2];
       const [day, mon] = fmt === "MDY" ? [b, a] : [a, b];
       const d = new Date(y, mon - 1, day);
-      return isNaN(d) ? null : d;
+      return isNaN(d) ? null : fixFutureYear(d);
     }
     const d = new Date(str); // last resort: "Jul 28, 2026" etc.
-    return isNaN(d) ? null : d;
+    return isNaN(d) ? null : fixFutureYear(d);
   };
 }
 
