@@ -90,7 +90,7 @@
   .tile .sub { font-size: 12px; color: var(--steel); font-family: 'Space Mono', monospace; letter-spacing: 0.06em; }
   .tile .sub b { color: var(--bone); font-weight: 700; }
 
-  .grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start; }
   @media (min-width: 900px) { .grid2 { grid-template-columns: 1fr 1fr; } }
   .mt { margin-top: 12px; }
 
@@ -174,6 +174,10 @@
   .wdelta.up { color: #4CAF6D; } .wdelta.down { color: var(--red); } .wdelta.flat { color: var(--steel); }
 
   /* pipeline */
+  .pipe-scroll { max-height: 330px; overflow-y: auto; padding-right: 6px; }
+  .pipe-scroll::-webkit-scrollbar { width: 6px; }
+  .pipe-scroll::-webkit-scrollbar-thumb { background: #2E2E2E; border-radius: 3px; }
+  .pipe-scroll::-webkit-scrollbar-track { background: transparent; }
   .pipe-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .pipe-row:last-of-type { border-bottom: none; }
   .pipe-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -877,24 +881,29 @@ function displayName(r) {
   return r.handle || "unknown";
 }
 function PipelinePanel({ replies }) {
-  const rows = [...replies].sort((a, b) => b.date - a.date).slice(0, 8);
+  const rows = [...replies].sort((a, b) => b.date - a.date);
   const stage = (r) => (r.closed ? "closed" : r.showed ? "shown" : r.booked ? "booked" : "replied");
   return (
     <div className="card">
-      <h2 className="sec">Latest Pipeline</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+        <h2 className="sec" style={{ margin: 0 }}>Latest Pipeline</h2>
+        <span className="mono label">{rows.length} {rows.length === 1 ? "reply" : "replies"}</span>
+      </div>
       {rows.length === 0 && <div className="chart-note">No replies in this window yet.</div>}
-      {rows.map((r, i) => (
-        <div className="pipe-row" key={i}>
-          <span className="pipe-name">{displayName(r)}</span>
-          <span className={"chip " + stage(r)}>{stage(r)}</span>
-          {r.closed && r.cash > 0 && (
-            <span className="pipe-money">
-              {fmtEuro(r.cash)}{r.dealValue > r.cash ? " of " + fmtEuro(r.dealValue) : ""}{r.paymentPlan ? " · plan" : ""}
-            </span>
-          )}
-          <span className="pipe-date">{shortDate(r.date)}{r.timeReplied ? " · " + r.timeReplied : ""}</span>
-        </div>
-      ))}
+      <div className="pipe-scroll">
+        {rows.map((r, i) => (
+          <div className="pipe-row" key={i}>
+            <span className="pipe-name">{displayName(r)}</span>
+            <span className={"chip " + stage(r)}>{stage(r)}</span>
+            {r.closed && r.cash > 0 && (
+              <span className="pipe-money">
+                {fmtEuro(r.cash)}{r.dealValue > r.cash ? " of " + fmtEuro(r.dealValue) : ""}{r.paymentPlan ? " · plan" : ""}
+              </span>
+            )}
+            <span className="pipe-date">{shortDate(r.date)}{r.timeReplied ? " · " + r.timeReplied : ""}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1484,15 +1493,17 @@ function App() {
       </section>
 
       <div className="grid2">
-        <div className="card">
-          <h2 className="sec">The Funnel</h2>
-          <FunnelView m={m} />
+        <div>
+          <div className="card">
+            <h2 className="sec">The Funnel</h2>
+            <FunnelView m={m} />
+          </div>
+          <div className="mt"><ReplyWindows replies={fReplies} /></div>
         </div>
         <div>
           <ProgressPanel allDaily={daily || []} allReplies={replies || []} calc={calc}
             liveReplyRate={m.replyRate} liveBookingRate={m.bookingRate} />
           <div className="mt"><PipelinePanel replies={fReplies} /></div>
-          <div className="mt"><ReplyWindows replies={fReplies} /></div>
         </div>
       </div>
 
