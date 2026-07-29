@@ -150,6 +150,18 @@
   .vs .half { flex: 1; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; text-align: center; }
   .vs .half .n { font-size: 30px; margin-top: 6px; }
 
+  /* health board */
+  .hgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  @media (min-width: 700px) { .hgrid { grid-template-columns: repeat(4, 1fr); gap: 12px; } }
+  .hcell { background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .hzone { display: inline-flex; align-items: center; gap: 7px; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; margin: 8px 0 6px; font-weight: 700; }
+  .hdot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .hz-g { color: #4CAF6D; } .hz-g .hdot { background: #4CAF6D; }
+  .hz-a { color: #C9A227; } .hz-a .hdot { background: #C9A227; }
+  .hz-r { color: var(--red); } .hz-r .hdot { background: var(--red); }
+  .hz-n { color: var(--steel); } .hz-n .hdot { background: var(--steel); }
+  .hdetail { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--steel); letter-spacing: 0.04em; }
+
   /* pipeline */
   .pipe-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .pipe-row:last-of-type { border-bottom: none; }
@@ -580,6 +592,96 @@ function FunnelView({ m }) {
         );
       })}
       <div className="funnel-note">Band widths on a square root scale so late stages stay visible. The counts and rates are exact.</div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   System health: is execution matching the SOPs, in zones not decimals.
+   The follow up check scores the Outreach SOP ladder debt: every new lead
+   owes 5 touches over its first 4 days (comment + loom, then niche, urgency,
+   results). The long tail cadence from the Follow Up SOP is deliberately not
+   scored: it needs per lead send logging to measure honestly.
+============================================================================ */
+const DAY_MS = 86400000;
+function ladderPerLead(age) {
+  if (age === 0) return 2;      // comment + credibility loom
+  if (age <= 3) return 1;       // niche, urgency, results
+  return 0;
+}
+function HealthBoard({ daily, replies, capacity }) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const byDay = new Map(daily.map((r) => [dayKey(r.date), r]));
+
+  // 1. Initials pace: last 7 logged days vs capacity.
+  const last7 = daily.slice(-7);
+  const pace = last7.length ? last7.reduce((s, r) => s + r.initials, 0) / last7.length : 0;
+  const paceRatio = safeDiv(pace, capacity);
+  const paceZone = !last7.length ? "n" : paceRatio >= 0.9 ? "g" : paceRatio >= 0.6 ? "a" : "r";
+
+  // 2. Follow up ladder: sends over the last 14 days vs what the ladder owed.
+  let owed = 0, sent = 0;
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * DAY_MS);
+    if (d.getDay() === 0) continue; // Sundays off
+    const row = byDay.get(dayKey(d));
+    if (row) sent += row.followUps;
+    for (const c of daily) {
+      const age = Math.round((d - c.date) / DAY_MS);
+      if (age >= 0) owed += c.initials * ladderPerLead(age);
+    }
+  }
+  const fuRatio = owed > 0 ? sent / owed : null;
+  const fuZone = fuRatio === null ? "n" : fuRatio >= 0.85 ? "g" : fuRatio >= 0.55 ? "a" : "r";
+
+  // 3. Logging discipline: of the last 7 full days (today and Sundays excluded),
+  // how many have an EOD form row.
+  let expectDays = 0, loggedDays = 0;
+  const firstLogged = daily.length ? daily[0].date : null;
+  for (let i = 7; i >= 1; i--) {
+    const d = new Date(today.getTime() - i * DAY_MS);
+    if (d.getDay() === 0) continue;
+    if (firstLogged && d < firstLogged) continue; // before tracking existed
+    expectDays++;
+    if (byDay.has(dayKey(d))) loggedDays++;
+  }
+  const logZone = !daily.length ? "n" : loggedDays >= expectDays ? "g" : loggedDays >= expectDays - 2 ? "a" : "r";
+
+  // 4. Tier 1 discipline: replies never booked, sitting untouched past a week.
+  const stale = replies.filter((r) => !r.booked && !r.showed && !r.closed
+    && (today - r.date) / DAY_MS > 7).length;
+  const staleZone = !replies.length ? "n" : stale === 0 ? "g" : stale <= 2 ? "a" : "r";
+
+  const ZONE_WORD = { g: "On track", a: "Falling behind", r: "Off track", n: "No data" };
+  const cell = (label, zone, detail) => (
+    <div className="hcell">
+      <div className="mono label">{label}</div>
+      <div className={"hzone hz-" + zone}><span className="hdot" />{ZONE_WORD[zone]}</div>
+      <div className="hdetail">{detail}</div>
+    </div>
+  );
+  const greens = [paceZone, fuZone, logZone, staleZone].filter((z) => z === "g").length;
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <h2 className="sec" style={{ margin: 0 }}>System Health</h2>
+        <span className="mono label">{greens} of 4 on track</span>
+      </div>
+      <div className="hgrid">
+        {cell("Initials pace", paceZone,
+          fmtInt(pace) + " a day vs " + fmtInt(capacity) + " target")}
+        {cell("Follow up ladder", fuZone,
+          fuRatio === null ? "waiting on logged days"
+            : "about " + fmtPct(Math.min(fuRatio, 1.5), 0) + " of ladder cadence, 14 days")}
+        {cell("Daily logging", logZone,
+          loggedDays + " of " + expectDays + " days logged, last week")}
+        {cell("Reply handling", staleZone,
+          stale === 0 ? "no replies waiting over 7 days"
+            : stale + (stale === 1 ? " reply" : " replies") + " unbooked past 7 days")}
+      </div>
+      <div className="chart-note">Ladder model: each new lead owes 5 touches in its first 4 days per the Outreach SOP. The long tail cadence is not scored, it would need per lead send logging.</div>
     </div>
   );
 }
@@ -1096,6 +1198,8 @@ function App() {
         <Tile label="Clients closed" value={fmtInt(m.closed)} sub={<span><b>{fmtPct(m.closeRate)}</b> close rate</span>} />
         <Tile label="Cash collected" value={fmtEuro(m.cash)} red sub={<span><b>{fmtEuro(m.outstanding)}</b> outstanding</span>} />
       </section>
+
+      <HealthBoard daily={daily || []} replies={replies || []} capacity={calc.capacity} />
 
       {/* Cash per initial, featured */}
       <section className="tiles" style={{ gridTemplateColumns: "1fr", marginBottom: 12 }}>
