@@ -67,6 +67,7 @@
   .btn:hover { border-color: var(--steel); }
   .btn.active { border-color: var(--red); color: var(--red); }
   .btn:disabled { opacity: .5; cursor: default; }
+  @media (max-width: 520px) { .btn { padding: 8px 10px; font-size: 10px; letter-spacing: 0.08em; } }
 
   .pillrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
@@ -78,12 +79,15 @@
 
   /* tiles */
   .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
-  @media (min-width: 700px) { .tiles { grid-template-columns: repeat(3, 1fr); } }
-  @media (min-width: 1024px) { .tiles { grid-template-columns: repeat(6, 1fr); gap: 12px; } }
-  .tile { background: var(--carbon); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
-  .tile .val { font-size: 26px; line-height: 1.1; margin: 8px 0 6px; }
-  @media (min-width: 1024px) { .tile .val { font-size: 28px; } }
-  .tile .sub { font-size: 11px; color: var(--steel); font-family: 'Space Mono', monospace; letter-spacing: 0.06em; }
+  @media (min-width: 700px) { .tiles { grid-template-columns: repeat(4, 1fr); gap: 12px; } }
+  .tile {
+    background: #1A1A1A; border: 1px solid #2E2E2E; border-radius: 10px; padding: 14px 16px;
+    box-shadow: 0 1px 0 rgba(244,242,237,0.04) inset;
+  }
+  .tile .tlabel { font-size: 10px; color: #9A9A9A; }
+  .tile .val { font-size: 31px; line-height: 1.1; margin: 8px 0 6px; }
+  @media (min-width: 1024px) { .tile .val { font-size: 34px; } }
+  .tile .sub { font-size: 12px; color: var(--steel); font-family: 'Space Mono', monospace; letter-spacing: 0.06em; }
   .tile .sub b { color: var(--bone); font-weight: 700; }
 
   .grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
@@ -513,7 +517,7 @@ function Badge({ kind, children }) {
 function Tile({ label, value, sub, red }) {
   return (
     <div className="tile">
-      <div className="mono label">{label}</div>
+      <div className="mono tlabel">{label}</div>
       <div className="display val" style={red ? { color: C.red } : null}>{value}</div>
       {sub ? <div className="sub">{sub}</div> : <div className="sub">&nbsp;</div>}
     </div>
@@ -1036,7 +1040,9 @@ function App() {
 
       {/* Headline tiles */}
       <section className="tiles">
-        <Tile label="Initials sent" value={fmtInt(m.initials)} sub={<span><b>{fmtInt(m.touches)}</b> total touches</span>} />
+        <Tile label="Initials sent" value={fmtInt(m.initials)} sub={<span><b>{fmtInt(safeDiv(m.initials, fDaily.length))}</b> per logged day</span>} />
+        <Tile label="Follow ups sent" value={fmtInt(m.followUps)} sub={<span><b>{fmtNum(safeDiv(m.followUps, m.initials), 1)}</b> per initial</span>} />
+        <Tile label="Total touches" value={fmtInt(m.touches)} sub={<span>initials + follow ups</span>} />
         <Tile label="Replies" value={fmtInt(m.replies)} sub={<span><b>{fmtPct(m.replyRate)}</b> reply rate</span>} />
         <Tile label="Calls booked" value={fmtInt(m.booked)} sub={<span><b>{fmtPct(m.bookingRate)}</b> of replies</span>} />
         <Tile label="Calls shown" value={fmtInt(m.shown)} sub={<span><b>{fmtPct(m.showRate)}</b> show rate</span>} />
