@@ -150,6 +150,18 @@
   .vs .half { flex: 1; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; text-align: center; }
   .vs .half .n { font-size: 30px; margin-top: 6px; }
 
+  /* pipeline */
+  .pipe-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .pipe-row:last-of-type { border-bottom: none; }
+  .pipe-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pipe-money { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--bone); white-space: nowrap; }
+  .pipe-date { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--steel); white-space: nowrap; }
+  .chip { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 4px; padding: 3px 7px; white-space: nowrap; }
+  .chip.closed { background: var(--red); color: var(--ink); font-weight: 700; }
+  .chip.shown { border: 1px solid var(--bone); color: var(--bone); }
+  .chip.booked { border: 1px solid var(--steel); color: var(--bone); }
+  .chip.replied { border: 1px solid var(--line); color: var(--steel); }
+
   /* funnel */
   .fstage + .fstage { margin-top: 0; }
   .fhead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
@@ -568,6 +580,41 @@ function FunnelView({ m }) {
         );
       })}
       <div className="funnel-note">Band widths on a square root scale so late stages stay visible. The counts and rates are exact.</div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   Latest pipeline: the most recent replies as people, with the stage each
+   one is at and the money once they close. Reads the same live rows, so
+   marking Booked / Showed / Closed or filling cash in the sheet moves the
+   row here on the next pull.
+============================================================================ */
+function displayName(r) {
+  if (r.name) return r.name;
+  const m = String(r.handle || "").match(/instagram\.com\/([^/?#]+)/i);
+  if (m) return "@" + m[1];
+  return r.handle || "unknown";
+}
+function PipelinePanel({ replies }) {
+  const rows = [...replies].sort((a, b) => b.date - a.date).slice(0, 8);
+  const stage = (r) => (r.closed ? "closed" : r.showed ? "shown" : r.booked ? "booked" : "replied");
+  return (
+    <div className="card">
+      <h2 className="sec">Latest Pipeline</h2>
+      {rows.length === 0 && <div className="chart-note">No replies in this window yet.</div>}
+      {rows.map((r, i) => (
+        <div className="pipe-row" key={i}>
+          <span className="pipe-name">{displayName(r)}</span>
+          <span className={"chip " + stage(r)}>{stage(r)}</span>
+          {r.closed && r.cash > 0 && (
+            <span className="pipe-money">
+              {fmtEuro(r.cash)}{r.dealValue > r.cash ? " of " + fmtEuro(r.dealValue) : ""}{r.paymentPlan ? " · plan" : ""}
+            </span>
+          )}
+          <span className="pipe-date">{shortDate(r.date)}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1073,8 +1120,11 @@ function App() {
           <h2 className="sec">The Funnel</h2>
           <FunnelView m={m} />
         </div>
-        <ProgressPanel allDaily={daily || []} allReplies={replies || []} calc={calc}
-          liveReplyRate={m.replyRate} liveBookingRate={m.bookingRate} />
+        <div>
+          <ProgressPanel allDaily={daily || []} allReplies={replies || []} calc={calc}
+            liveReplyRate={m.replyRate} liveBookingRate={m.bookingRate} />
+          <div className="mt"><PipelinePanel replies={fReplies} /></div>
+        </div>
       </div>
 
       <div className="grid2 mt">
