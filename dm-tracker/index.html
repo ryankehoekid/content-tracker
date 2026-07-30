@@ -1,0 +1,1536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KEHOEGROUP. DM Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+<script crossorigin src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<script crossorigin src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<style>
+  :root {
+    --ink: #0A0A0A;
+    --carbon: #141414;
+    --carbon-2: #1B1B1B;
+    --red: #E11414;
+    --bone: #F4F2ED;
+    --steel: #7A7A7A;
+    --line: #232323;
+    --grid: #222222;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--ink);
+    color: var(--bone);
+    font-family: 'Archivo', system-ui, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .display { font-family: 'Archivo Black', 'Archivo', sans-serif; font-weight: 400; }
+  .mono {
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
+  @media (min-width: 768px) { .wrap { padding: 36px 32px 80px; } }
+
+  .card {
+    background: var(--carbon);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  @media (min-width: 768px) { .card { padding: 24px; } }
+
+  .label { font-size: 10px; color: var(--steel); }
+  .label-lg { font-size: 11px; color: var(--steel); }
+
+  /* header */
+  .hdr { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .wordmark { font-size: 26px; letter-spacing: 0.02em; color: var(--bone); line-height: 1; }
+  .wordmark .dot { color: var(--red); }
+  @media (min-width: 768px) { .wordmark { font-size: 32px; } }
+
+  .btn {
+    font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 0.12em;
+    font-size: 11px; color: var(--bone); background: var(--carbon); border: 1px solid var(--line);
+    border-radius: 6px; padding: 9px 14px; cursor: pointer; transition: border-color .15s, color .15s;
+  }
+  .btn:hover { border-color: var(--steel); }
+  .btn.active { border-color: var(--red); color: var(--red); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  @media (max-width: 520px) { .btn { padding: 8px 10px; font-size: 10px; letter-spacing: 0.08em; } }
+
+  .pillrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  input[type=date] {
+    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--bone);
+    background: var(--carbon); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px;
+    color-scheme: dark;
+  }
+
+  /* tiles */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+  @media (min-width: 700px) { .tiles { grid-template-columns: repeat(4, 1fr); gap: 12px; } }
+  .tile {
+    background: #1A1A1A; border: 1px solid #2E2E2E; border-radius: 10px; padding: 14px 16px;
+    box-shadow: 0 1px 0 rgba(244,242,237,0.04) inset;
+  }
+  .tile .tlabel { font-size: 10px; color: #9A9A9A; }
+  .tile .val { font-size: 31px; line-height: 1.1; margin: 8px 0 6px; }
+  @media (min-width: 1024px) { .tile .val { font-size: 34px; } }
+  .tile .sub { font-size: 12px; color: var(--steel); font-family: 'Space Mono', monospace; letter-spacing: 0.06em; }
+  .tile .sub b { color: var(--bone); font-weight: 700; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start; }
+  @media (min-width: 900px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+  .mt { margin-top: 12px; }
+
+  h2.sec {
+    font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em;
+    font-size: 11px; color: var(--steel); margin-bottom: 14px; font-weight: 400;
+  }
+
+  /* badges */
+  .badge {
+    display: inline-block; font-family: 'Space Mono', monospace; font-size: 9px;
+    letter-spacing: 0.12em; text-transform: uppercase; border-radius: 4px; padding: 2px 6px;
+    vertical-align: middle;
+  }
+  .badge.live { color: var(--red); border: 1px solid rgba(225,20,20,.45); }
+  .badge.manual { color: var(--steel); border: 1px solid var(--line); }
+  .badge.warn { color: #C9A227; border: 1px solid rgba(201,162,39,.4); }
+  .badge.sample { color: var(--ink); background: var(--red); font-weight: 700; }
+
+  /* goal calculator */
+  .calc-inputs { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 640px) { .calc-inputs { grid-template-columns: 1fr 1fr; } }
+  .field label { display: block; margin-bottom: 8px; }
+  .field input[type=number] {
+    width: 100%; font-family: 'Archivo Black', sans-serif; font-size: 20px; color: var(--bone);
+    background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+  }
+  .field input[type=number]:focus { outline: none; border-color: var(--steel); }
+  input[type=range] { width: 100%; accent-color: var(--red); height: 22px; }
+  .rate-val { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--bone); }
+  .hint { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--steel); letter-spacing: .05em; margin-top: 6px; }
+
+  .chain { margin-top: 20px; border-top: 1px solid var(--line); }
+  .chain-row {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .chain-row .cr-label { font-size: 11px; color: var(--steel); }
+  .chain-row .cr-note { font-size: 10px; color: var(--steel); font-family: 'Space Mono', monospace; }
+  .chain-row .cr-val { font-size: 20px; white-space: nowrap; }
+  .chain-final { text-align: center; padding: 22px 0 6px; }
+  .chain-final .big { font-size: 56px; color: var(--red); line-height: 1; }
+  @media (min-width: 768px) { .chain-final .big { font-size: 72px; } }
+
+  .capcheck { margin-top: 18px; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .capgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (min-width: 640px) { .capgrid { grid-template-columns: repeat(6, 1fr); } }
+  .capgrid .cv { font-size: 16px; margin-top: 4px; }
+
+  /* progress */
+  .pbar { height: 18px; background: var(--ink); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; margin: 14px 0 8px; }
+  .pbar .fill { height: 100%; background: var(--red); border-radius: 9px 0 0 9px; transition: width .4s ease; }
+  .pgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+  @media (min-width: 640px) { .pgrid { grid-template-columns: repeat(4, 1fr); } }
+  .pstat .v { font-size: 22px; margin-top: 6px; }
+  .vs { display: flex; gap: 12px; margin-top: 18px; }
+  .vs .half { flex: 1; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; text-align: center; }
+  .vs .half .n { font-size: 30px; margin-top: 6px; }
+
+  /* health board */
+  .hgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  @media (min-width: 700px) { .hgrid { grid-template-columns: repeat(4, 1fr); gap: 12px; } }
+  .hcell { background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .hzone { display: inline-flex; align-items: center; gap: 7px; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; margin: 8px 0 6px; font-weight: 700; }
+  .hdot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .hz-g { color: #4CAF6D; } .hz-g .hdot { background: #4CAF6D; }
+  .hz-a { color: #C9A227; } .hz-a .hdot { background: #C9A227; }
+  .hz-r { color: var(--red); } .hz-r .hdot { background: var(--red); }
+  .hz-n { color: var(--steel); } .hz-n .hdot { background: var(--steel); }
+  .hdetail { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--steel); letter-spacing: 0.04em; }
+
+  /* diagnosis */
+  .diag-row { background: var(--ink); border: 1px solid var(--line); border-left-width: 3px; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .diag-title { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+  .diag-ev { font-size: 12px; color: var(--steel); line-height: 1.55; margin-bottom: 7px; }
+  .diag-lever { font-size: 12px; color: var(--bone); line-height: 1.5; }
+  .diag-lever span { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--red); margin-right: 6px; }
+
+  /* week over week */
+  .wdelta { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.04em; margin-top: 5px; }
+  .wdelta.up { color: #4CAF6D; } .wdelta.down { color: var(--red); } .wdelta.flat { color: var(--steel); }
+
+  /* pipeline */
+  .pipe-scroll { max-height: 330px; overflow-y: auto; padding-right: 6px; }
+  .pipe-scroll::-webkit-scrollbar { width: 6px; }
+  .pipe-scroll::-webkit-scrollbar-thumb { background: #2E2E2E; border-radius: 3px; }
+  .pipe-scroll::-webkit-scrollbar-track { background: transparent; }
+  .pipe-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .pipe-row:last-of-type { border-bottom: none; }
+  .pipe-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pipe-money { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--bone); white-space: nowrap; }
+  .pipe-date { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--steel); white-space: nowrap; }
+  .chip { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 4px; padding: 3px 7px; white-space: nowrap; }
+  .chip.closed { background: var(--red); color: var(--ink); font-weight: 700; }
+  .chip.shown { border: 1px solid var(--bone); color: var(--bone); }
+  .chip.booked { border: 1px solid var(--steel); color: var(--bone); }
+  .chip.replied { border: 1px solid var(--line); color: var(--steel); }
+
+  /* reply windows */
+  .rw-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .rw-stats > div { background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .rw-big { font-size: 24px; margin: 6px 0 4px; }
+  .rw-row { display: flex; align-items: center; gap: 12px; padding: 7px 0; }
+  .rw-label { flex: none; width: 138px; }
+  .rw-track { flex: 1; height: 10px; background: var(--ink); border-radius: 5px; overflow: hidden; }
+  .rw-bar { display: block; height: 100%; border-radius: 5px; transition: width .3s ease; }
+  .rw-count { flex: none; width: 26px; text-align: right; font-size: 15px; }
+
+  /* funnel */
+  .fstage + .fstage { margin-top: 0; }
+  .fhead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .fbar-row { display: flex; justify-content: center; }
+  .fbar {
+    height: 42px; border-radius: 5px; min-width: 76px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fbar .fval { font-size: 17px; color: var(--bone); }
+  .fconn { height: 20px; background: var(--bone); opacity: 0.05; }
+  .funnel-note { font-size: 10px; color: var(--steel); font-family: 'Space Mono', monospace; letter-spacing: .06em; margin-top: 12px; }
+
+  .chart-note { font-size: 12px; color: var(--steel); margin-top: 10px; line-height: 1.5; }
+
+  /* loading / error */
+  .center { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; padding: 24px; }
+  .pulse-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--red); animation: pulse 1.1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: .25; transform: scale(.85); } 50% { opacity: 1; transform: scale(1); } }
+
+  .setup { border-color: rgba(225,20,20,.35); }
+  .setup code { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--bone); background: var(--ink); padding: 2px 6px; border-radius: 4px; }
+
+  .foot { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+
+  .recharts-default-legend { font-family: 'Space Mono', monospace; font-size: 10px !important; letter-spacing: .1em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+/* ============================================================================
+   CONFIG - wire the dashboard to the Google Sheet. One-time setup, then it
+   stays live: the app re-pulls the sheet on every page load and every 5
+   minutes. Nothing is ever downloaded or uploaded by hand.
+
+   EASIEST: in the sheet hit Share > General access > "Anyone with the link"
+   (Viewer), then paste the sheet's normal URL into SHEET_URL below. The two
+   tab names must match the sheet's tab names.
+
+   ALTERNATIVE: leave SHEET_URL blank and use File > Share > Publish to web
+   to publish each tab as CSV, pasting the two links into the explicit URLs.
+
+   While nothing is configured the app runs on built-in sample data, clearly
+   badged in the UI.
+============================================================================ */
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1HL4DISJ2mdz8BYm8qH0s385mV2eD4kkwMo9LGi45MDU/edit?usp=sharing";
+const DAILY_LOG_TAB = "Daily Log";
+const REPLIES_TAB   = "Replies";
+
+// Optional override: explicit published-to-web CSV links per tab.
+const DAILY_LOG_CSV_URL = "";
+const REPLIES_CSV_URL   = "";
+
+// A link-shared sheet exposes each tab as CSV through Google's gviz endpoint;
+// updates show up in near real time, no republish step involved.
+function sheetCsvUrl(tab) {
+  const m = String(SHEET_URL).match(/\/d\/([\w-]+)/);
+  if (!m) return "";
+  // Default export: Google folds the sheet's instruction rows into the
+  // column labels (so column names arrive as suffixes of longer text, which
+  // colIndex handles). headers=0 is worse: raw rows get type-coerced and
+  // the header text row comes back blanked.
+  return "https://docs.google.com/spreadsheets/d/" + m[1]
+    + "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(tab);
+}
+const DAILY_URL   = DAILY_LOG_CSV_URL || sheetCsvUrl(DAILY_LOG_TAB);
+const REPLIES_URL = REPLIES_CSV_URL || sheetCsvUrl(REPLIES_TAB);
+
+// 'DMY' (Irish sheets), 'MDY', or 'auto' to detect from the data.
+const DATE_FORMAT = "auto";
+
+// Fallback rates used by the goal calculator only while a live rate has no
+// data yet. Flagged in the UI as assumptions.
+const FALLBACK_REPLY_RATE   = 0.04;
+const FALLBACK_BOOKING_RATE = 0.30;
+
+const AUTO_REFRESH_MS = 5 * 60 * 1000; // re-pull the sheet every 5 minutes
+
+// KPI bands for the diagnosis engine: [floor, strong]. Seeded with cold IG DM
+// norms. Edit to internal targets, the engine reads them live.
+const KPI = {
+  replyRate: [0.03, 0.06],
+  bookingRate: [0.25, 0.40],
+  showRate: [0.60, 0.80],
+  closeRate: [0.15, 0.30],
+};
+
+/* ============================================================================
+   Colors (Blood & Ink)
+============================================================================ */
+const C = {
+  ink: "#0A0A0A", carbon: "#141414", red: "#E11414",
+  bone: "#F4F2ED", steel: "#7A7A7A", grid: "#222222", line: "#232323",
+};
+
+const { useState, useEffect, useMemo, useCallback } = React;
+const {
+  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend, ReferenceLine,
+} = Recharts;
+
+/* ============================================================================
+   Utilities
+============================================================================ */
+function toNumber(v) {
+  if (v === null || v === undefined) return 0;
+  const n = parseFloat(String(v).replace(/[€$£,\s]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+function toBool(v) {
+  return String(v || "").trim().toLowerCase().startsWith("y");
+}
+function safeDiv(a, b) {
+  return b > 0 ? a / b : 0;
+}
+function fmtInt(n) {
+  return Math.round(n).toLocaleString("en-IE");
+}
+function fmtNum(n, dp = 1) {
+  return n.toLocaleString("en-IE", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+function fmtEuro(n, dp = 0) {
+  return "€" + n.toLocaleString("en-IE", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+function fmtPct(r, dp = 1) {
+  return (r * 100).toLocaleString("en-IE", { minimumFractionDigits: 0, maximumFractionDigits: dp }) + "%";
+}
+function dayKey(d) {
+  const p = (x) => String(x).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function shortDate(d) {
+  return d.toLocaleDateString("en-IE", { day: "numeric", month: "short" });
+}
+
+// Log rows can never legitimately be dated in the future; a year typo in the
+// sheet (2027 for 2026) otherwise silently drops the row from every window.
+function fixFutureYear(d) {
+  const limit = Date.now() + 7 * 86400000;
+  let guard = 0;
+  while (d.getTime() > limit && guard++ < 5) d.setFullYear(d.getFullYear() - 1);
+  return d;
+}
+
+// Detect DMY vs MDY across a column of slash-dates, then parse.
+function makeDateParser(rawDates) {
+  let fmt = DATE_FORMAT;
+  if (fmt === "auto") {
+    fmt = "DMY"; // Irish default
+    for (const s of rawDates) {
+      const m = String(s || "").match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+      if (m) {
+        if (+m[1] > 12) { fmt = "DMY"; break; }
+        if (+m[2] > 12) { fmt = "MDY"; break; }
+      }
+    }
+  }
+  return function parseDate(s) {
+    const str = String(s || "").trim();
+    if (!str) return null;
+    let m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); // ISO
+    if (m) return fixFutureYear(new Date(+m[1], +m[2] - 1, +m[3]));
+    m = str.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+    if (m) {
+      let y = +m[3]; if (y < 100) y += 2000;
+      const a = +m[1], b = +m[2];
+      const [day, mon] = fmt === "MDY" ? [b, a] : [a, b];
+      const d = new Date(y, mon - 1, day);
+      return isNaN(d) ? null : fixFutureYear(d);
+    }
+    const d = new Date(str); // last resort: "Jul 28, 2026" etc.
+    return isNaN(d) ? null : fixFutureYear(d);
+  };
+}
+
+/* ============================================================================
+   CSV parsing. Both tabs carry a header block in the first rows plus an
+   example row; find the real header by its column names, skip blanks and
+   anything containing "example".
+============================================================================ */
+function findHeaderRow(rows, mustInclude) {
+  for (let i = 0; i < Math.min(rows.length, 12); i++) {
+    const cells = rows[i].map((c) => String(c || "").trim().toLowerCase());
+    if (mustInclude.every((k) => cells.some((c) => c.includes(k)))) return i;
+  }
+  return -1;
+}
+// Exact header match wins, then endsWith (covers labels an export prefixed
+// with other text), then a substring as the last resort. A loose substring
+// alone can hit the wrong column when stray text mentions a column name.
+function colIndex(headerCells, ...names) {
+  const cells = headerCells.map((c) => String(c || "").trim().toLowerCase());
+  for (const pass of ["exact", "ends", "includes"]) {
+    for (const name of names) {
+      const i = cells.findIndex((c) =>
+        pass === "exact" ? c === name : pass === "ends" ? c.endsWith(name) : c.includes(name));
+      if (i !== -1) return i;
+    }
+  }
+  return -1;
+}
+function isJunkRow(cells) {
+  const joined = cells.map((c) => String(c || "").trim()).join("");
+  if (!joined) return true;
+  return cells.some((c) => String(c || "").toLowerCase().includes("example"));
+}
+
+function parseDailyLog(csvText) {
+  const rows = Papa.parse(csvText, { skipEmptyLines: false }).data;
+  const h = findHeaderRow(rows, ["date", "initials"]);
+  if (h === -1) throw new Error("Daily Log: could not find the header row (needs Date and Initials Sent columns).");
+  const H = rows[h];
+  const ci = {
+    date: colIndex(H, "date"),
+    setter: colIndex(H, "setter"),
+    initials: colIndex(H, "initials sent", "initial"),
+    followUps: colIndex(H, "follow ups sent", "follow"),
+    notes: colIndex(H, "notes", "note"),
+  };
+  const body = rows.slice(h + 1).filter((r) => !isJunkRow(r));
+  const parseDate = makeDateParser(body.map((r) => r[ci.date]));
+  const out = [];
+  for (const r of body) {
+    const date = parseDate(r[ci.date]);
+    if (!date) continue;
+    out.push({
+      date,
+      // Setter kept on every row so a per-setter dimension can be added later
+      // by grouping these rows, no rewrite needed.
+      setter: String(r[ci.setter] || "").trim(),
+      initials: toNumber(r[ci.initials]),
+      followUps: toNumber(r[ci.followUps]),
+      notes: String(r[ci.notes] || "").trim(),
+    });
+  }
+  out.sort((a, b) => a.date - b.date);
+  return out;
+}
+
+function parseReplies(csvText) {
+  const rows = Papa.parse(csvText, { skipEmptyLines: false }).data;
+  const h = findHeaderRow(rows, ["date", "handle"]);
+  if (h === -1) throw new Error("Replies: could not find the header row (needs Date Replied and Handle columns).");
+  const H = rows[h];
+  const ci = {
+    date: colIndex(H, "date replied", "date"),
+    handle: colIndex(H, "handle"),
+    name: colIndex(H, "name"),
+    booked: colIndex(H, "booked", "book"),
+    showed: colIndex(H, "showed", "show"),
+    closed: colIndex(H, "closed", "close"),
+    dealValue: colIndex(H, "deal value", "deal"),
+    cash: colIndex(H, "cash collected", "cash"),
+    plan: colIndex(H, "payment plan", "plan"),
+    notes: colIndex(H, "notes", "note"),
+    // Optional column, tolerated when absent: the time of day the reply
+    // landed. Captured raw now, analyzed once the sheet carries it.
+    time: colIndex(H, "time replied", "time"),
+  };
+  const body = rows.slice(h + 1).filter((r) => !isJunkRow(r));
+  const parseDate = makeDateParser(body.map((r) => r[ci.date]));
+  const out = [];
+  for (const r of body) {
+    const date = parseDate(r[ci.date]);
+    if (!date) continue;
+    out.push({
+      date,
+      handle: String(r[ci.handle] || "").trim(),
+      name: String(r[ci.name] || "").trim(),
+      booked: toBool(r[ci.booked]),
+      showed: toBool(r[ci.showed]),
+      closed: toBool(r[ci.closed]),
+      dealValue: toNumber(r[ci.dealValue]),
+      cash: toNumber(r[ci.cash]),
+      paymentPlan: toBool(r[ci.plan]),
+      notes: String(r[ci.notes] || "").trim(),
+      timeReplied: ci.time !== -1 ? String(r[ci.time] || "").trim() : "",
+    });
+  }
+  out.sort((a, b) => a.date - b.date);
+  return out;
+}
+
+/* ============================================================================
+   Sample data (used only while the CSV URLs above are blank). Mimics the real
+   sheet layout, header block and example row included, so it exercises the
+   same parser the live data will use.
+============================================================================ */
+function buildSampleCsvs() {
+  const today = new Date();
+  const daily = [
+    "KEHOEGROUP Daily Log,,,,",
+    "Fill this in once a day,,,,",
+    "Date,Setter,Initials Sent,Follow Ups Sent,Notes",
+    "01/01/2026,Example Setter,25,10,Example row - ignore",
+  ];
+  const replies = [
+    "KEHOEGROUP Replies,,,,,,,,,",
+    "One row per person who replied,,,,,,,,,",
+    "Date Replied,Handle,Name,Time Replied,Booked,Showed,Closed,Deal Value,Cash Collected,Payment Plan,Notes",
+    "01/01/2026,@example,Example Person,12:00,Y,Y,Y,10000,5000,Y,Example row - ignore",
+  ];
+  const dmy = (d) => {
+    const p = (x) => String(x).padStart(2, "0");
+    return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear();
+  };
+  const rand = (seed) => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
+  const rnd = rand(42);
+  const handles = ["@fx_daniel","@ecom.luke","@ai.martina","@salescoach_tom","@realty.jane",
+    "@bizopp.kev","@trading.sy","@creator.mia","@closer.pat","@brand.ash","@growth.finn",
+    "@wealth.roy","@mentor.zed","@funnel.gus","@scale.ivy","@offer.max","@coach.nia","@deals.obi"];
+  let leadN = 0;
+  for (let back = 69; back >= 0; back--) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - back);
+    if (d.getDay() === 0) continue; // Sundays off
+    const ramp = 1 + (69 - back) / 69; // volume ramps up over the 10 weeks
+    const initials = Math.round((14 + rnd() * 14) * ramp);
+    const fups = Math.round((8 + rnd() * 16) * ramp);
+    daily.push(dmy(d) + ",Jamie," + initials + "," + fups + ",");
+    // Replies track volume at roughly a 3 to 5.5 percent reply rate.
+    const exp = initials * (0.03 + rnd() * 0.025);
+    const nReplies = Math.floor(exp) + (rnd() < exp % 1 ? 1 : 0);
+    for (let k = 0; k < nReplies; k++) {
+      const handle = handles[leadN % handles.length] + (leadN >= handles.length ? "." + leadN : "");
+      leadN++;
+      const booked = rnd() < 0.38;
+      const showed = booked && rnd() < 0.7;
+      // Lag baked in: closes only appear on replies older than ~3 weeks.
+      const closed = showed && back > 20 && rnd() < 0.35;
+      const deal = closed ? (rnd() < 0.4 ? 15000 : 10000) : 0;
+      const plan = closed && rnd() < 0.5;
+      const cash = closed ? (plan ? deal / 2 : deal) : 0;
+      const hr = 13 + Math.floor(rnd() * 11); // afternoon and evening weighted
+      const time = String(hr % 24).padStart(2, "0") + ":" + String(Math.floor(rnd() * 60)).padStart(2, "0");
+      replies.push([dmy(d), handle, "", time, booked ? "Y" : "", showed ? "Y" : "",
+        closed ? "Y" : "", deal || "", cash || "", plan ? "Y" : "", ""].join(","));
+    }
+  }
+  return { daily: daily.join("\n"), replies: replies.join("\n") };
+}
+
+/* ============================================================================
+   Metrics. Takes plain row arrays so a future setter or account dimension is
+   just a filter or groupBy on the rows before this call.
+============================================================================ */
+function computeMetrics(daily, replies) {
+  const initials = daily.reduce((s, r) => s + r.initials, 0);
+  const followUps = daily.reduce((s, r) => s + r.followUps, 0);
+  const replyCount = replies.length;
+  const booked = replies.filter((r) => r.booked).length;
+  const shown = replies.filter((r) => r.showed).length;
+  const closed = replies.filter((r) => r.closed).length;
+  const dealValue = replies.reduce((s, r) => s + r.dealValue, 0);
+  const cash = replies.reduce((s, r) => s + r.cash, 0);
+  return {
+    initials, followUps, touches: initials + followUps,
+    replies: replyCount, booked, shown, closed,
+    replyRate: safeDiv(replyCount, initials),
+    bookingRate: safeDiv(booked, replyCount),
+    showRate: safeDiv(shown, booked),
+    closeRate: safeDiv(closed, shown),
+    dealValue, cash,
+    outstanding: dealValue - cash,
+    avgDeal: safeDiv(dealValue, closed),
+    cashPerInitial: safeDiv(cash, initials),
+  };
+}
+
+function daysRemainingInMonth(now) {
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return last - now.getDate() + 1; // today counts
+}
+
+/* ============================================================================
+   Small UI atoms
+============================================================================ */
+function Wordmark({ size }) {
+  return (
+    <span className="display wordmark" style={size ? { fontSize: size } : null}>
+      KEHOEGROUP<span className="dot">.</span>
+    </span>
+  );
+}
+function Badge({ kind, children }) {
+  return <span className={"badge " + kind}>{children}</span>;
+}
+
+function Tile({ label, value, sub, red, delta }) {
+  const cls = delta > 0.02 ? "up" : delta < -0.02 ? "down" : "flat";
+  const arrow = delta > 0.02 ? "▲" : delta < -0.02 ? "▼" : "·";
+  return (
+    <div className="tile">
+      <div className="mono tlabel">{label}</div>
+      <div className="display val" style={red ? { color: C.red } : null}>{value}</div>
+      {sub ? <div className="sub">{sub}</div> : <div className="sub">&nbsp;</div>}
+      {delta !== null && delta !== undefined && (
+        <div className={"wdelta " + cls}>
+          {arrow} {Math.abs(delta) < 0.005 ? "flat" : Math.round(Math.abs(delta) * 100) + "%"} vs last wk
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Week over week: fixed trailing windows, independent of the range picker.
+// Null when the prior week has no data, so young trackers stay quiet.
+function weekOverWeek(daily, replies) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const cur = (d) => (today - d) / DAY_MS <= 6;
+  const prev = (d) => { const a = (today - d) / DAY_MS; return a >= 7 && a <= 13; };
+  const delta = (c, p) => (p > 0 ? c / p - 1 : null);
+  const sum = (rows, test, f) => rows.filter((r) => test(r.date)).reduce((s, r) => s + f(r), 0);
+  return {
+    initials: delta(sum(daily, cur, (r) => r.initials), sum(daily, prev, (r) => r.initials)),
+    followUps: delta(sum(daily, cur, (r) => r.followUps), sum(daily, prev, (r) => r.followUps)),
+    replies: delta(sum(replies, cur, () => 1), sum(replies, prev, () => 1)),
+    booked: delta(sum(replies, cur, (r) => (r.booked ? 1 : 0)), sum(replies, prev, (r) => (r.booked ? 1 : 0))),
+    cash: delta(sum(replies, cur, (r) => r.cash), sum(replies, prev, (r) => r.cash)),
+  };
+}
+
+/* ============================================================================
+   Funnel: centered HTML bands so the drop off is physical at any screen size.
+   Widths use a square root scale so the later stages stay visible next to a
+   2,000-strong top; the printed counts and stage rates carry the exact numbers.
+============================================================================ */
+function FunnelView({ m }) {
+  const stages = [
+    { label: "Initials", value: m.initials },
+    { label: "Replies", value: m.replies, rate: m.replyRate, rateLabel: "reply rate" },
+    { label: "Booked", value: m.booked, rate: m.bookingRate, rateLabel: "booking rate" },
+    { label: "Shown", value: m.shown, rate: m.showRate, rateLabel: "show rate" },
+    { label: "Closed", value: m.closed, rate: m.closeRate, rateLabel: "close rate" },
+  ];
+  const maxV = Math.max(stages[0].value, 1);
+  const widthFor = (v) => Math.max(Math.sqrt(v / maxV) * 100, 6); // percent
+  const fills = ["#3A3A3A", "#343434", "#2E2E2E", "#282828", C.red];
+
+  return (
+    <div>
+      {stages.map((s, i) => {
+        const w = widthFor(s.value);
+        const nextW = i < stages.length - 1 ? widthFor(stages[i + 1].value) : null;
+        const connClip = nextW !== null
+          ? "polygon(" + (100 - w) / 2 + "% 0, " + (100 + w) / 2 + "% 0, "
+            + (100 + nextW) / 2 + "% 100%, " + (100 - nextW) / 2 + "% 100%)"
+          : null;
+        return (
+          <div className="fstage" key={s.label}>
+            <div className="fhead">
+              <span className="mono label">{s.label}</span>
+              {s.rate !== undefined && (
+                <span className="mono label">{fmtPct(s.rate)} {s.rateLabel}</span>
+              )}
+            </div>
+            <div className="fbar-row">
+              <div className="fbar" style={{ width: w + "%", background: fills[i] }}>
+                <span className="display fval">{fmtInt(s.value)}</span>
+              </div>
+            </div>
+            {connClip && <div className="fconn" style={{ clipPath: connClip }} />}
+          </div>
+        );
+      })}
+      <div className="funnel-note">Band widths on a square root scale so late stages stay visible. The counts and rates are exact.</div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   System health: is execution matching the SOPs, in zones not decimals.
+   The follow up check scores the Outreach SOP ladder debt: every new lead
+   owes 5 touches over its first 4 days (comment + loom, then niche, urgency,
+   results). The long tail cadence from the Follow Up SOP is deliberately not
+   scored: it needs per lead send logging to measure honestly.
+============================================================================ */
+const DAY_MS = 86400000;
+function ladderPerLead(age) {
+  if (age === 0) return 2;      // comment + credibility loom
+  if (age <= 3) return 1;       // niche, urgency, results
+  return 0;
+}
+// Shared signal computation: the health board shows these as zones and the
+// diagnosis engine reasons over the same numbers.
+function computeSignals(daily, replies, capacity) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const byDay = new Map(daily.map((r) => [dayKey(r.date), r]));
+
+  // Initials pace: last 7 logged days vs capacity.
+  const last7 = daily.slice(-7);
+  const pace = last7.length ? last7.reduce((s, r) => s + r.initials, 0) / last7.length : 0;
+  const paceRatio = safeDiv(pace, capacity);
+
+  // Follow up ladder: sends over the last 14 days vs what the ladder owed.
+  let owed = 0, sent = 0;
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * DAY_MS);
+    if (d.getDay() === 0) continue; // Sundays off
+    const row = byDay.get(dayKey(d));
+    if (row) sent += row.followUps;
+    for (const c of daily) {
+      const age = Math.round((d - c.date) / DAY_MS);
+      if (age >= 0) owed += c.initials * ladderPerLead(age);
+    }
+  }
+  const fuRatio = owed > 0 ? sent / owed : null;
+
+  // Logging discipline: of the last 7 full days (today, Sundays and
+  // pre-tracking days excluded), how many have an EOD form row.
+  let expectDays = 0, loggedDays = 0;
+  const firstLogged = daily.length ? daily[0].date : null;
+  for (let i = 7; i >= 1; i--) {
+    const d = new Date(today.getTime() - i * DAY_MS);
+    if (d.getDay() === 0) continue;
+    if (firstLogged && d < firstLogged) continue;
+    expectDays++;
+    if (byDay.has(dayKey(d))) loggedDays++;
+  }
+
+  // Tier 1 discipline: replies never booked, sitting untouched past a week.
+  const stale = replies.filter((r) => !r.booked && !r.showed && !r.closed
+    && (today - r.date) / DAY_MS > 7).length;
+
+  // Trailing 14 day reply performance, for the messaging verdict.
+  const cut14 = new Date(today.getTime() - 13 * DAY_MS);
+  const init14 = daily.filter((r) => r.date >= cut14).reduce((s, r) => s + r.initials, 0);
+  const replies14 = replies.filter((r) => r.date >= cut14).length;
+
+  return { today, pace, paceRatio, fuRatio, owed, sent, expectDays, loggedDays,
+    stale, init14, replies14, replyRate14: safeDiv(replies14, init14) };
+}
+
+function HealthBoard({ daily, replies, capacity }) {
+  const s = computeSignals(daily, replies, capacity);
+  const { pace, paceRatio, fuRatio, expectDays, loggedDays, stale } = s;
+  const paceZone = !daily.length ? "n" : paceRatio >= 0.9 ? "g" : paceRatio >= 0.6 ? "a" : "r";
+  const fuZone = fuRatio === null ? "n" : fuRatio >= 0.85 ? "g" : fuRatio >= 0.55 ? "a" : "r";
+  const logZone = !daily.length ? "n" : loggedDays >= expectDays ? "g" : loggedDays >= expectDays - 2 ? "a" : "r";
+  const staleZone = !replies.length ? "n" : stale === 0 ? "g" : stale <= 2 ? "a" : "r";
+
+  const ZONE_WORD = { g: "On track", a: "Falling behind", r: "Off track", n: "No data" };
+  const cell = (label, zone, detail) => (
+    <div className="hcell">
+      <div className="mono label">{label}</div>
+      <div className={"hzone hz-" + zone}><span className="hdot" />{ZONE_WORD[zone]}</div>
+      <div className="hdetail">{detail}</div>
+    </div>
+  );
+  const greens = [paceZone, fuZone, logZone, staleZone].filter((z) => z === "g").length;
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <h2 className="sec" style={{ margin: 0 }}>System Health</h2>
+        <span className="mono label">{greens} of 4 on track</span>
+      </div>
+      <div className="hgrid">
+        {cell("Initials pace", paceZone,
+          fmtInt(pace) + " a day vs " + fmtInt(capacity) + " target")}
+        {cell("Follow up ladder", fuZone,
+          fuRatio === null ? "waiting on logged days"
+            : "about " + fmtPct(Math.min(fuRatio, 1.5), 0) + " of ladder cadence, 14 days")}
+        {cell("Daily logging", logZone,
+          loggedDays + " of " + expectDays + " days logged, last week")}
+        {cell("Reply handling", staleZone,
+          stale === 0 ? "no replies waiting over 7 days"
+            : stale + (stale === 1 ? " reply" : " replies") + " unbooked past 7 days")}
+      </div>
+      <div className="chart-note">Ladder model: each new lead owes 5 touches in its first 4 days per the Outreach SOP. The long tail cadence is not scored, it would need per lead send logging.</div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   Diagnosis engine. Rules run in causal order, upstream before downstream:
+   data integrity, then volume, then ladder completion, and only if the ladder
+   is being executed does a weak reply rate get blamed on the message itself.
+   Most replies come from touches 3 to 6, so an incomplete ladder suppresses
+   reply rate before the opener is the problem. Downstream verdicts stay muted
+   until their sample size can carry a conclusion.
+============================================================================ */
+function Diagnosis({ daily, replies, capacity, m }) {
+  const s = computeSignals(daily, replies, capacity);
+  const findings = [];
+  const waiting = [];
+  const add = (sev, title, evidence, lever) => findings.push({ sev, title, evidence, lever });
+
+  if (daily.length && s.expectDays > 0 && s.loggedDays < s.expectDays - 1) {
+    add("r", "Fix the data first",
+      "Only " + s.loggedDays + " of the last " + s.expectDays + " days have an EOD row. Every other number here is guesswork until logging is daily.",
+      "EOD form every working day, no exceptions.");
+  }
+  if (daily.length && s.paceRatio < 0.9) {
+    add(s.paceRatio < 0.6 ? "r" : "a", "Volume below capacity",
+      "Initials running " + fmtInt(s.pace) + " a day against the " + fmtInt(capacity) + " target.",
+      "Protect the morning sending block. Initials go out while the US sleeps, per the system overview.");
+  }
+  const ladderShort = s.fuRatio !== null && s.fuRatio < 0.85;
+  if (ladderShort) {
+    add(s.fuRatio < 0.55 ? "r" : "a", "The ladder is being cut short",
+      "Follow ups are at about " + fmtPct(s.fuRatio, 0) + " of what touches 2 to 6 owe the last 14 days of leads. Most replies come from touches 3 to 6, so this suppresses reply rate before the opener is to blame.",
+      "Finish all 5 ladder touches on every open lead before sourcing new ones. Catch up the recent cohorts first.");
+  }
+  if (s.init14 >= 150) {
+    if (!ladderShort && s.replyRate14 < KPI.replyRate[0]) {
+      add("a", "First touch underperforming",
+        "Ladder execution is healthy but the 14 day reply rate is " + fmtPct(s.replyRate14) + ", under the " + fmtPct(KPI.replyRate[0], 0) + " floor on " + fmtInt(s.init14) + " sends.",
+        "Rotate the opener, check account health and deliverability, tighten sourcing fit.");
+    }
+  } else {
+    waiting.push("messaging verdict (needs 150 initials in 14 days, at " + fmtInt(s.init14) + ")");
+  }
+  if (m.replies >= 10) {
+    if (m.bookingRate < KPI.bookingRate[0]) {
+      add("a", "Replies not turning into booked calls",
+        "Booking rate " + fmtPct(m.bookingRate) + " against a " + fmtPct(KPI.bookingRate[0], 0) + " floor, on " + fmtInt(m.replies) + " replies.",
+        "Review the reply-to-call handling. Tier 1 first every day, ask for the call in about half the messages.");
+    }
+  } else {
+    waiting.push("booking verdict (needs 10 replies, at " + fmtInt(m.replies) + ")");
+  }
+  if (s.stale > 0) {
+    add(s.stale > 2 ? "r" : "a", "Tier 1 leads going stale",
+      s.stale + (s.stale === 1 ? " reply is" : " replies are") + " sitting unbooked past 7 days. Tier 1 never slips.",
+      "Work these today before any new outreach.");
+  }
+  if (m.booked >= 5) {
+    if (m.showRate < KPI.showRate[0]) {
+      add("a", "Booked calls not showing",
+        "Show rate " + fmtPct(m.showRate) + " against a " + fmtPct(KPI.showRate[0], 0) + " floor.",
+        "Confirm the day before and the hour before. Calendar invite plus a personal message.");
+    }
+  } else {
+    waiting.push("show verdict (needs 5 booked, at " + fmtInt(m.booked) + ")");
+  }
+  if (m.shown >= 5) {
+    if (m.closeRate < KPI.closeRate[0]) {
+      add("a", "Shows not closing",
+        "Close rate " + fmtPct(m.closeRate) + " against a " + fmtPct(KPI.closeRate[0], 0) + " floor.",
+        "Review call recordings and the offer framing. This is a sales call problem, not an outreach problem.");
+    }
+  } else {
+    waiting.push("close verdict (needs 5 shows, at " + fmtInt(m.shown) + ")");
+  }
+
+  const top = findings.slice(0, 3);
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <h2 className="sec">Diagnosis, what to fix first</h2>
+      {top.length === 0 && (
+        <div className="hzone hz-g" style={{ margin: 0 }}><span className="hdot" />No binding constraint visible. Push volume to capacity and keep the ladder at 5 touches.</div>
+      )}
+      {top.map((f, i) => (
+        <div className="diag-row" key={i} style={{ borderLeftColor: f.sev === "r" ? C.red : "#C9A227" }}>
+          <div className="diag-title">{i + 1}. {f.title}</div>
+          <div className="diag-ev">{f.evidence}</div>
+          <div className="diag-lever"><span>Lever</span> {f.lever}</div>
+        </div>
+      ))}
+      {waiting.length > 0 && (
+        <div className="chart-note">On mute until the sample can carry it: {waiting.join("; ")}.</div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================================
+   Latest pipeline: the most recent replies as people, with the stage each
+   one is at and the money once they close. Reads the same live rows, so
+   marking Booked / Showed / Closed or filling cash in the sheet moves the
+   row here on the next pull.
+============================================================================ */
+function displayName(r) {
+  if (r.name) return r.name;
+  const m = String(r.handle || "").match(/instagram\.com\/([^/?#]+)/i);
+  if (m) return "@" + m[1];
+  return r.handle || "unknown";
+}
+function PipelinePanel({ replies }) {
+  const rows = [...replies].sort((a, b) => b.date - a.date);
+  const stage = (r) => (r.closed ? "closed" : r.showed ? "shown" : r.booked ? "booked" : "replied");
+  return (
+    <div className="card">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+        <h2 className="sec" style={{ margin: 0 }}>Latest Pipeline</h2>
+        <span className="mono label">{rows.length} {rows.length === 1 ? "reply" : "replies"}</span>
+      </div>
+      {rows.length === 0 && <div className="chart-note">No replies in this window yet.</div>}
+      <div className="pipe-scroll">
+        {rows.map((r, i) => (
+          <div className="pipe-row" key={i}>
+            <span className="pipe-name">{displayName(r)}</span>
+            <span className={"chip " + stage(r)}>{stage(r)}</span>
+            {r.closed && r.cash > 0 && (
+              <span className="pipe-money">
+                {fmtEuro(r.cash)}{r.dealValue > r.cash ? " of " + fmtEuro(r.dealValue) : ""}{r.paymentPlan ? " · plan" : ""}
+              </span>
+            )}
+            <span className="pipe-date">{shortDate(r.date)}{r.timeReplied ? " · " + r.timeReplied : ""}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   Reply windows: when replies actually land, bucketed into Irish time bands.
+   Grows into the best-send-window answer as times accumulate; explicitly
+   directional while the sample is small.
+============================================================================ */
+function parseReplyHour(s) {
+  const m = String(s || "").match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+  if (!m) return null;
+  let h = +m[1];
+  const min = +m[2];
+  const ap = m[3] ? m[3].toLowerCase() : null;
+  if (ap === "pm" && h < 12) h += 12;
+  if (ap === "am" && h === 12) h = 0;
+  if (h > 23 || min > 59) return null;
+  return h + min / 60;
+}
+const TIME_BANDS = [
+  { label: "Morning", range: "06 to 12", test: (h) => h >= 6 && h < 12 },
+  { label: "Afternoon", range: "12 to 17", test: (h) => h >= 12 && h < 17 },
+  { label: "Evening", range: "17 to 22", test: (h) => h >= 17 && h < 22 },
+  { label: "Late", range: "22 to 06", test: (h) => h >= 22 || h < 6 },
+];
+// Circular mean so times either side of midnight average correctly
+// (23:30 and 00:30 average to midnight, not noon).
+function meanReplyTime(hours) {
+  let x = 0, y = 0;
+  for (const h of hours) {
+    const a = (h / 24) * 2 * Math.PI;
+    x += Math.cos(a); y += Math.sin(a);
+  }
+  let a = Math.atan2(y, x);
+  if (a < 0) a += 2 * Math.PI;
+  const h = (a / (2 * Math.PI)) * 24;
+  const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+  return String(hh % 24).padStart(2, "0") + ":" + String(mm % 60).padStart(2, "0");
+}
+function ReplyWindows({ replies }) {
+  const hours = replies.map((r) => parseReplyHour(r.timeReplied)).filter((h) => h !== null);
+  if (!hours.length) return null; // panel appears once the sheet carries times
+  const counts = TIME_BANDS.map((b) => hours.filter(b.test).length);
+  const max = Math.max(...counts, 1);
+  const top = counts.indexOf(Math.max(...counts));
+  return (
+    <div className="card">
+      <h2 className="sec">Reply Windows, Irish time</h2>
+      <div className="rw-stats">
+        <div>
+          <div className="mono label">Best window so far</div>
+          <div className="display rw-big" style={{ color: C.red }}>{TIME_BANDS[top].range.replace(" to ", " - ")}</div>
+          <div className="hdetail">{TIME_BANDS[top].label.toLowerCase()}</div>
+        </div>
+        <div>
+          <div className="mono label">Average reply time</div>
+          <div className="display rw-big">{meanReplyTime(hours)}</div>
+          <div className="hdetail">across {hours.length} timed replies</div>
+        </div>
+      </div>
+      {TIME_BANDS.map((b, i) => (
+        <div className="rw-row" key={b.label}>
+          <span className="mono label rw-label">{b.label} {b.range}</span>
+          <span className="rw-track"><span className="rw-bar" style={{
+            width: (counts[i] / max) * 100 + "%",
+            background: i === top && counts[i] > 0 ? C.red : "#3A3A3A",
+          }} /></span>
+          <span className="rw-count display">{counts[i]}</span>
+        </div>
+      ))}
+      <div className="chart-note">
+        {counts[top] > 0 && "Busiest so far: " + TIME_BANDS[top].label.toLowerCase() + ", " + TIME_BANDS[top].range + ". "}
+        Times on {hours.length} of {replies.length} replies.
+        {hours.length < 30 && " Directional only until 30 plus. The reply window is when Tier 1 conversations should be worked live."}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   Goal calculator. The cash chain divides by cash per close (what a client
+   actually pays up front, most deals are payment plans), not the full
+   contract value, so the goal math tracks money in the bank. Contract
+   revenue signed is shown alongside for the full picture.
+============================================================================ */
+function GoalCalculator({ calc, setCalc, liveReplyRate, liveBookingRate, liveCashPerClose, liveShowRate, liveCloseRate, liveBooked, liveShown }) {
+  const { goal, deal, aov, showRate, closeRate, capacity, sendDays } = calc;
+  const set = (k) => (v) => setCalc({ ...calc, [k]: v });
+
+  const replyNoData = !(liveReplyRate > 0);
+  const bookingNoData = !(liveBookingRate > 0);
+  const replyRate = replyNoData ? FALLBACK_REPLY_RATE : liveReplyRate;
+  const bookingRate = bookingNoData ? FALLBACK_BOOKING_RATE : liveBookingRate;
+
+  const clientsNeeded = safeDiv(goal, aov);
+  const contractRevenue = clientsNeeded * deal;
+  const callsToShow = safeDiv(clientsNeeded, closeRate);
+  const callsToBook = safeDiv(callsToShow, showRate);
+  const repliesNeeded = safeDiv(callsToBook, bookingRate);
+  const initialsNeeded = safeDiv(repliesNeeded, replyRate);
+
+  // Timeline at real capacity, instead of an impossible per-day demand.
+  const sendingDaysNeeded = safeDiv(initialsNeeded, capacity);
+  const weeksToGoal = safeDiv(sendingDaysNeeded, sendDays / 4.345);
+  const timeToGoal = !(capacity > 0) ? null
+    : weeksToGoal < 1 ? fmtNum(sendingDaysNeeded, 0) + " days"
+    : weeksToGoal < 9 ? fmtNum(weeksToGoal, 1) + " weeks"
+    : fmtNum(weeksToGoal / 4.345, 1) + " months";
+
+  // Forward pass: what the current capacity supports in a month.
+  const capInitials = capacity * sendDays;
+  const capReplies = capInitials * replyRate;
+  const capBooked = capReplies * bookingRate;
+  const capShows = capBooked * showRate;
+  const capCloses = capShows * closeRate;
+  const capCash = capCloses * aov;
+  const capPct = safeDiv(capCash, goal);
+
+  const numField = (label, val, setter, step, hint) => (
+    <div className="field">
+      <label className="mono label-lg">{label}</label>
+      <input type="number" min="0" step={step} value={val}
+        onChange={(e) => setter(Math.max(0, toNumber(e.target.value)))} />
+      {hint && <div className="hint">{hint}</div>}
+    </div>
+  );
+  const slider = (label, val, setter, min, max, step, hint) => (
+    <div className="field">
+      <label className="mono label-lg">
+        {label} <Badge kind="manual">Manual</Badge>
+        <span className="rate-val" style={{ float: "right" }}>{fmtPct(val)}</span>
+      </label>
+      <input type="range" min={min} max={max} step={step} value={val}
+        onChange={(e) => setter(parseFloat(e.target.value))} />
+      {hint && <div className="hint">{hint}</div>}
+    </div>
+  );
+  const liveRow = (label, val, noData) => (
+    <div className="field">
+      <label className="mono label-lg">
+        {label}{" "}
+        {noData
+          ? <Badge kind="warn">Assumption, no data yet</Badge>
+          : <Badge kind="live">Live</Badge>}
+      </label>
+      <div className="display" style={{ fontSize: 20, color: noData ? "#C9A227" : C.red }}>{fmtPct(val)}</div>
+    </div>
+  );
+  const chainRow = (label, val, note) => (
+    <div className="chain-row">
+      <div>
+        <div className="mono cr-label">{label}</div>
+        {note && <div className="cr-note">{note}</div>}
+      </div>
+      <div className="display cr-val">{val}</div>
+    </div>
+  );
+
+  return (
+    <div className="card">
+      <h2 className="sec">Goal Calculator</h2>
+      <div className="calc-inputs">
+        {numField("Monthly cash goal (€)", goal, set("goal"), 1000)}
+        {numField("Cash per close (€)", aov, set("aov"), 500,
+          liveCashPerClose > 0
+            ? "avg order value. live actual: " + fmtEuro(liveCashPerClose)
+            : "avg order value, the upfront payment")}
+        {numField("Full deal value (€)", deal, set("deal"), 500, "the whole contract, plans included")}
+        {numField("Max initials per day", capacity, set("capacity"), 10, "what the setter can realistically send")}
+        {numField("Sending days per month", sendDays, set("sendDays"), 1, "6 days a week is 26")}
+        {slider("Show rate", showRate, set("showRate"), 0.1, 1, 0.025,
+          liveBooked > 0
+            ? "live actual: " + fmtPct(liveShowRate) + " from " + fmtInt(liveBooked) + " booked. adjust the slider as this firms up"
+            : "no booked calls yet, baseline assumption")}
+        {slider("Close rate", closeRate, set("closeRate"), 0.025, 0.6, 0.0125,
+          liveShown > 0
+            ? "live actual: " + fmtPct(liveCloseRate) + " from " + fmtInt(liveShown) + " shows. adjust the slider as this firms up"
+            : "no shows yet, baseline assumption")}
+        {liveRow("Reply rate", replyRate, replyNoData)}
+        {liveRow("Booking rate", bookingRate, bookingNoData)}
+      </div>
+
+      <div className="chain">
+        {chainRow("Clients to close", fmtNum(clientsNeeded, 1), fmtEuro(goal) + " goal / " + fmtEuro(aov) + " cash per close")}
+        {chainRow("Contract revenue signed", fmtEuro(contractRevenue), fmtNum(clientsNeeded, 1) + " clients x " + fmtEuro(deal) + " deal, rest lands later")}
+        {chainRow("Calls that must show", fmtNum(callsToShow, 1), "/ " + fmtPct(closeRate) + " close rate")}
+        {chainRow("Calls to book", fmtNum(callsToBook, 1), "/ " + fmtPct(showRate) + " show rate")}
+        {chainRow("Replies needed", fmtNum(repliesNeeded, 0), "/ " + fmtPct(bookingRate) + " booking rate")}
+        {chainRow("Initials needed", fmtInt(initialsNeeded), "/ " + fmtPct(replyRate) + " reply rate")}
+        {chainRow("Sending days needed", fmtNum(sendingDaysNeeded, 0), "at " + fmtInt(capacity) + " initials a day")}
+        <div className="chain-final">
+          <div className="mono label-lg">Time to bank {fmtEuro(goal)} at {fmtInt(capacity)} a day</div>
+          <div className="display big" style={{ fontSize: 52 }}>{timeToGoal || "set capacity"}</div>
+        </div>
+      </div>
+
+      <div className="capcheck">
+        <div className="mono label-lg" style={{ marginBottom: 10 }}>
+          Capacity check: what {fmtInt(capacity)} a day supports, per month
+        </div>
+        <div className="capgrid">
+          <div><div className="mono label">Initials</div><div className="display cv">{fmtInt(capInitials)}</div></div>
+          <div><div className="mono label">Replies</div><div className="display cv">{fmtNum(capReplies, 0)}</div></div>
+          <div><div className="mono label">Booked</div><div className="display cv">{fmtNum(capBooked, 0)}</div></div>
+          <div><div className="mono label">Shows</div><div className="display cv">{fmtNum(capShows, 0)}</div></div>
+          <div><div className="mono label">Closes</div><div className="display cv">{fmtNum(capCloses, 1)}</div></div>
+          <div><div className="mono label">Cash</div><div className="display cv" style={{ color: C.red }}>{fmtEuro(capCash)}</div></div>
+        </div>
+        <div className="chart-note">
+          {capPct >= 1
+            ? "That covers the monthly goal with room to spare. Volume is not the constraint."
+            : "That is " + fmtPct(capPct, 0) + " of the " + fmtEuro(goal) + " monthly goal. Closing the gap means better rates, higher cash per close, or more sending capacity, not a bigger daily quota."}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   Progress to goal (always the current calendar month)
+============================================================================ */
+function ProgressPanel({ allDaily, allReplies, calc, liveReplyRate, liveBookingRate }) {
+  const { goal, aov, showRate, closeRate, capacity } = calc;
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const monthReplies = allReplies.filter((r) => r.date >= monthStart);
+  const cashMTD = monthReplies.reduce((s, r) => s + r.cash, 0);
+  const gap = Math.max(goal - cashMTD, 0);
+  const daysLeft = daysRemainingInMonth(now);
+  const pct = Math.min(safeDiv(cashMTD, goal) * 100, 100);
+
+  const replyRate = liveReplyRate > 0 ? liveReplyRate : FALLBACK_REPLY_RATE;
+  const bookingRate = liveBookingRate > 0 ? liveBookingRate : FALLBACK_BOOKING_RATE;
+
+  const closesNeeded = Math.ceil(safeDiv(gap, aov));
+  const callsNeeded = Math.ceil(safeDiv(safeDiv(closesNeeded, closeRate), showRate));
+  const initialsNeeded = Math.ceil(safeDiv(safeDiv(safeDiv(safeDiv(closesNeeded, closeRate), showRate), bookingRate), replyRate));
+  const dailyRequired = Math.ceil(safeDiv(initialsNeeded, daysLeft));
+
+  // Actual pace: average initials over the last 7 logged days.
+  const recent = allDaily.slice(-7);
+  const actualDaily = recent.length ? recent.reduce((s, r) => s + r.initials, 0) / recent.length : 0;
+
+  const stat = (label, val) => (
+    <div className="pstat">
+      <div className="mono label">{label}</div>
+      <div className="display v">{val}</div>
+    </div>
+  );
+
+  return (
+    <div className="card">
+      <h2 className="sec">Progress to Goal, {now.toLocaleDateString("en-IE", { month: "long" })}</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
+        <span className="display" style={{ fontSize: 34, color: C.red }}>{fmtEuro(cashMTD)}</span>
+        <span className="mono label-lg">of {fmtEuro(goal)} goal</span>
+      </div>
+      <div className="pbar"><div className="fill" style={{ width: pct + "%" }} /></div>
+      <div className="mono label">{fmtPct(pct / 100, 0)} collected</div>
+
+      <div className="pgrid">
+        {stat("Gap remaining", fmtEuro(gap))}
+        {stat("Days left", fmtInt(daysLeft))}
+        {stat("Closes still needed", fmtInt(closesNeeded))}
+        {stat("Calls to book", fmtInt(gap > 0 ? callsNeeded : 0))}
+      </div>
+
+      <div className="vs">
+        <div className="half">
+          <div className="mono label">Required initials / day</div>
+          <div className="display n" style={{ color: C.red }}>{gap > 0 ? fmtInt(dailyRequired) : 0}</div>
+        </div>
+        <div className="half">
+          <div className="mono label">Actual, last 7 logged days</div>
+          <div className="display n">{fmtInt(actualDaily)}</div>
+        </div>
+      </div>
+      <div className="chart-note">
+        Cash is counted in the month the lead replied. Required pace uses the calculator's settings: {fmtEuro(aov)} cash per close, {fmtPct(showRate)} show, {fmtPct(closeRate)} close.
+        {gap > 0 && capacity > 0 && dailyRequired > capacity &&
+          " That pace is above the " + fmtInt(capacity) + " a day capacity, so the rest of this goal realistically lands next month: about " + fmtInt(Math.ceil(safeDiv(initialsNeeded, capacity))) + " more sending days at capacity."}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   Charts
+============================================================================ */
+const tooltipStyle = {
+  contentStyle: { background: C.carbon, border: "1px solid " + C.line, borderRadius: 8, fontFamily: "'Space Mono', monospace", fontSize: 11 },
+  labelStyle: { color: C.bone, marginBottom: 4 },
+  itemStyle: { color: C.steel },
+};
+const axisTick = { fill: C.steel, fontFamily: "'Space Mono', monospace", fontSize: 10 };
+
+function VolumeChart({ daily }) {
+  const data = daily.map((r) => ({
+    day: shortDate(r.date),
+    Initials: r.initials,
+    "Follow ups": r.followUps,
+  }));
+  return (
+    <div className="card">
+      <h2 className="sec">Volume Over Time, per day</h2>
+      <div style={{ width: "100%", height: 260 }}>
+        <ResponsiveContainer>
+          <LineChart data={data} margin={{ top: 6, right: 12, left: -14, bottom: 0 }}>
+            <CartesianGrid stroke={C.grid} vertical={false} />
+            <XAxis dataKey="day" tick={axisTick} tickLine={false} axisLine={{ stroke: C.line }} minTickGap={28} />
+            <YAxis tick={axisTick} tickLine={false} axisLine={false} allowDecimals={false} />
+            <Tooltip {...tooltipStyle} cursor={{ stroke: C.steel, strokeWidth: 1 }} />
+            <Legend formatter={(v) => <span style={{ color: C.steel }}>{v}</span>} />
+            <Line type="monotone" dataKey="Initials" stroke={C.red} strokeWidth={2} dot={false}
+              activeDot={{ r: 4, stroke: C.carbon, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="Follow ups" stroke={C.bone} strokeWidth={2} dot={false}
+              activeDot={{ r: 4, stroke: C.carbon, strokeWidth: 2 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="chart-note">Consistency check. Dips here show up as missing cash weeks later.</div>
+    </div>
+  );
+}
+
+// Two aligned weekly charts, one axis each, so the outreach-to-cash lag is
+// visible without implying same-month causation.
+function LagCharts({ daily, replies }) {
+  const weekly = useMemo(() => {
+    const weekOf = (d) => {
+      const x = new Date(d);
+      const dow = (x.getDay() + 6) % 7; // Monday start
+      x.setDate(x.getDate() - dow);
+      return dayKey(x);
+    };
+    const map = new Map();
+    const get = (k) => {
+      if (!map.has(k)) map.set(k, { key: k, touches: 0, cash: 0 });
+      return map.get(k);
+    };
+    daily.forEach((r) => { get(weekOf(r.date)).touches += r.initials + r.followUps; });
+    replies.forEach((r) => { get(weekOf(r.date)).cash += r.cash; });
+    return Array.from(map.values())
+      .sort((a, b) => a.key.localeCompare(b.key))
+      .map((w) => {
+        const [y, m, d] = w.key.split("-").map(Number);
+        return { week: shortDate(new Date(y, m - 1, d)), Touches: w.touches, Cash: w.cash };
+      });
+  }, [daily, replies]);
+
+  return (
+    <div className="card">
+      <h2 className="sec">Outreach vs Cash, weekly</h2>
+      <div className="mono label" style={{ marginBottom: 8 }}>Touches sent per week</div>
+      <div style={{ width: "100%", height: 150 }}>
+        <ResponsiveContainer>
+          <LineChart data={weekly} syncId="lag" margin={{ top: 6, right: 12, left: -14, bottom: 0 }}>
+            <CartesianGrid stroke={C.grid} vertical={false} />
+            <XAxis dataKey="week" tick={axisTick} tickLine={false} axisLine={{ stroke: C.line }} minTickGap={24} />
+            <YAxis tick={axisTick} tickLine={false} axisLine={false} allowDecimals={false} />
+            <Tooltip {...tooltipStyle} cursor={{ stroke: C.steel, strokeWidth: 1 }} />
+            <Line type="monotone" dataKey="Touches" stroke={C.bone} strokeWidth={2} dot={false}
+              activeDot={{ r: 4, stroke: C.carbon, strokeWidth: 2 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mono label" style={{ margin: "14px 0 8px" }}>Cash collected per week</div>
+      <div style={{ width: "100%", height: 150 }}>
+        <ResponsiveContainer>
+          <BarChart data={weekly} syncId="lag" margin={{ top: 6, right: 12, left: -14, bottom: 0 }} barCategoryGap="30%">
+            <CartesianGrid stroke={C.grid} vertical={false} />
+            <XAxis dataKey="week" tick={axisTick} tickLine={false} axisLine={{ stroke: C.line }} minTickGap={24} />
+            <YAxis tick={axisTick} tickLine={false} axisLine={false}
+              tickFormatter={(v) => "€" + (v >= 1000 ? Math.round(v / 1000) + "k" : v)} />
+            <Tooltip {...tooltipStyle} cursor={{ fill: "rgba(244,242,237,0.04)" }}
+              formatter={(v) => [fmtEuro(v), "Cash"]} />
+            <Bar dataKey="Cash" fill={C.red} radius={[4, 4, 0, 0]} maxBarSize={24} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="chart-note">Leads close off long term follow up, so this month's cash comes from earlier months' messages. Read the two trends together over weeks, not as same-week cause and effect.</div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   Date range picker
+============================================================================ */
+const RANGE_PRESETS = [
+  { id: "week", label: "This week" },
+  { id: "month", label: "This month" },
+  { id: "all", label: "All time" },
+  { id: "custom", label: "Custom" },
+];
+function rangeBounds(range, customFrom, customTo) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (range === "week") {
+    const from = new Date(today);
+    from.setDate(from.getDate() - ((from.getDay() + 6) % 7)); // Monday
+    return [from, null];
+  }
+  if (range === "month") return [new Date(now.getFullYear(), now.getMonth(), 1), null];
+  if (range === "custom") {
+    const f = customFrom ? new Date(customFrom + "T00:00:00") : null;
+    const t = customTo ? new Date(customTo + "T23:59:59") : null;
+    return [f, t];
+  }
+  return [null, null];
+}
+function RangePicker({ range, setRange, customFrom, setCustomFrom, customTo, setCustomTo }) {
+  return (
+    <div className="pillrow">
+      {RANGE_PRESETS.map((p) => (
+        <button key={p.id} className={"btn" + (range === p.id ? " active" : "")}
+          onClick={() => setRange(p.id)}>{p.label}</button>
+      ))}
+      {range === "custom" && (
+        <React.Fragment>
+          <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+          <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================================
+   App
+============================================================================ */
+const usingSampleData = !DAILY_URL || !REPLIES_URL;
+
+function App() {
+  const [daily, setDaily] = useState(null);
+  const [replies, setReplies] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [range, setRange] = useState("all");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  // Shared planning inputs: the goal calculator edits them, progress uses
+  // them. Saved to this browser so slider settings survive refreshes.
+  const CALC_DEFAULTS = { goal: 30000, deal: 10000, aov: 5000, showRate: 0.7, closeRate: 0.175, capacity: 100, sendDays: 26 };
+  const [calc, setCalc] = useState(() => {
+    try { return { ...CALC_DEFAULTS, ...JSON.parse(localStorage.getItem("kg_calc") || "{}") }; }
+    catch (e) { return CALC_DEFAULTS; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("kg_calc", JSON.stringify(calc)); } catch (e) {}
+  }, [calc]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let dailyText, repliesText;
+      if (usingSampleData) {
+        const s = buildSampleCsvs();
+        dailyText = s.daily; repliesText = s.replies;
+      } else {
+        const bust = "cb=" + Date.now();
+        const join = (u) => u + (u.includes("?") ? "&" : "?") + bust;
+        const [r1, r2] = await Promise.all([
+          fetch(join(DAILY_URL)), fetch(join(REPLIES_URL)),
+        ]);
+        if (!r1.ok) throw new Error("Daily Log fetch failed (" + r1.status + ").");
+        if (!r2.ok) throw new Error("Replies fetch failed (" + r2.status + ").");
+        [dailyText, repliesText] = await Promise.all([r1.text(), r2.text()]);
+      }
+      setDaily(parseDailyLog(dailyText));
+      setReplies(parseReplies(repliesText));
+      setLastUpdated(new Date());
+    } catch (e) {
+      setError(e.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (usingSampleData) return;
+    const t = setInterval(load, AUTO_REFRESH_MS);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const [from, to] = rangeBounds(range, customFrom, customTo);
+  const inRange = (d) => (!from || d >= from) && (!to || d <= to);
+  const fDaily = useMemo(() => (daily || []).filter((r) => inRange(r.date)), [daily, range, customFrom, customTo]);
+  const fReplies = useMemo(() => (replies || []).filter((r) => inRange(r.date)), [replies, range, customFrom, customTo]);
+  const m = useMemo(() => computeMetrics(fDaily, fReplies), [fDaily, fReplies]);
+  const wow = useMemo(() => weekOverWeek(daily || [], replies || []), [daily, replies]);
+
+  if (loading && !daily) {
+    return (
+      <div className="center">
+        <Wordmark size={36} />
+        <div className="pulse-dot" />
+        <div className="mono label-lg">Pulling the numbers</div>
+      </div>
+    );
+  }
+  if (error && !daily) {
+    return (
+      <div className="center">
+        <Wordmark size={36} />
+        <div className="card" style={{ maxWidth: 460 }}>
+          <div className="mono label-lg" style={{ color: C.red, marginBottom: 10 }}>Data feed problem</div>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: C.bone }}>{error}</p>
+          <p className="chart-note">Check the sheet is shared as "Anyone with the link" and the tab names in the CONFIG block match the sheet's tabs exactly.</p>
+          <button className="btn" style={{ marginTop: 14 }} onClick={load}>Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="wrap">
+      <header className="hdr">
+        <div>
+          <Wordmark />
+          <div className="mono label-lg" style={{ marginTop: 8 }}>
+            DM Tracker {usingSampleData && <Badge kind="sample">Sample data</Badge>}
+          </div>
+        </div>
+        <div className="pillrow">
+          <RangePicker range={range} setRange={setRange}
+            customFrom={customFrom} setCustomFrom={setCustomFrom}
+            customTo={customTo} setCustomTo={setCustomTo} />
+          <button className="btn" onClick={load} disabled={loading}>
+            {loading ? "Refreshing" : "Refresh"}
+          </button>
+        </div>
+      </header>
+
+      {usingSampleData && (
+        <div className="card setup" style={{ marginBottom: 12 }}>
+          <div className="mono label-lg" style={{ color: C.red, marginBottom: 8 }}>Not wired to the sheet yet</div>
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: C.steel }}>
+            You are looking at generated sample data. One-time setup: in the Google Sheet,
+            set Share to "Anyone with the link" (Viewer), then paste the sheet's URL into{" "}
+            <code>SHEET_URL</code> at the top of <code>dm-tracker/index.html</code>. From then
+            on the tracker pulls the sheet live, on every open and every 5 minutes.
+          </p>
+        </div>
+      )}
+      {error && daily && (
+        <div className="card setup" style={{ marginBottom: 12 }}>
+          <p style={{ fontSize: 13, color: C.steel }}>Refresh failed: {error}. Showing the last good data.</p>
+        </div>
+      )}
+
+      {/* Headline tiles */}
+      <section className="tiles">
+        <Tile label="Initials sent" value={fmtInt(m.initials)} delta={wow.initials} sub={<span><b>{fmtInt(safeDiv(m.initials, fDaily.length))}</b> per logged day</span>} />
+        <Tile label="Follow ups sent" value={fmtInt(m.followUps)} delta={wow.followUps} sub={<span><b>{fmtNum(safeDiv(m.followUps, m.initials), 1)}</b> per initial</span>} />
+        <Tile label="Total touches" value={fmtInt(m.touches)} sub={<span>initials + follow ups</span>} />
+        <Tile label="Replies" value={fmtInt(m.replies)} delta={wow.replies} sub={<span><b>{fmtPct(m.replyRate)}</b> reply rate</span>} />
+        <Tile label="Calls booked" value={fmtInt(m.booked)} delta={wow.booked} sub={<span><b>{fmtPct(m.bookingRate)}</b> of replies</span>} />
+        <Tile label="Calls shown" value={fmtInt(m.shown)} sub={<span><b>{fmtPct(m.showRate)}</b> show rate</span>} />
+        <Tile label="Clients closed" value={fmtInt(m.closed)} sub={<span><b>{fmtPct(m.closeRate)}</b> close rate</span>} />
+        <Tile label="Cash collected" value={fmtEuro(m.cash)} red delta={wow.cash} sub={<span><b>{fmtEuro(m.outstanding)}</b> outstanding</span>} />
+      </section>
+
+      <HealthBoard daily={daily || []} replies={replies || []} capacity={calc.capacity} />
+      <Diagnosis daily={daily || []} replies={replies || []} capacity={calc.capacity} m={m} />
+
+      {/* Cash per initial, featured */}
+      <section className="tiles" style={{ gridTemplateColumns: "1fr", marginBottom: 12 }}>
+        <div className="tile" style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <div className="mono label">Cash per initial sent</div>
+            <div className="display" style={{ fontSize: 44, color: C.red, margin: "8px 0 4px" }}>
+              {fmtEuro(m.cashPerInitial, 2)}
+            </div>
+            <div className="sub">What one cold DM is worth. The scaling decision number.</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div className="mono label">Contract revenue signed</div>
+            <div className="display" style={{ fontSize: 24, margin: "6px 0" }}>{fmtEuro(m.dealValue)}</div>
+            <div className="sub">avg deal <b>{fmtEuro(m.avgDeal)}</b> · avg collected per close <b>{fmtEuro(safeDiv(m.cash, m.closed))}</b></div>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid2">
+        <div>
+          <div className="card">
+            <h2 className="sec">The Funnel</h2>
+            <FunnelView m={m} />
+          </div>
+          <div className="mt"><ReplyWindows replies={fReplies} /></div>
+        </div>
+        <div>
+          <ProgressPanel allDaily={daily || []} allReplies={replies || []} calc={calc}
+            liveReplyRate={m.replyRate} liveBookingRate={m.bookingRate} />
+          <div className="mt"><PipelinePanel replies={fReplies} /></div>
+        </div>
+      </div>
+
+      <div className="grid2 mt">
+        <GoalCalculator calc={calc} setCalc={setCalc}
+          liveReplyRate={m.replyRate} liveBookingRate={m.bookingRate}
+          liveCashPerClose={safeDiv(m.cash, m.closed)}
+          liveShowRate={m.showRate} liveCloseRate={m.closeRate}
+          liveBooked={m.booked} liveShown={m.shown} />
+        <div>
+          <VolumeChart daily={fDaily} />
+          <div className="mt"><LagCharts daily={fDaily} replies={fReplies} /></div>
+        </div>
+      </div>
+
+      <footer className="foot">
+        <Wordmark size={16} />
+        <span className="mono label">
+          {lastUpdated ? "Updated " + lastUpdated.toLocaleTimeString("en-IE", { hour: "2-digit", minute: "2-digit" }) : ""}
+          {!usingSampleData ? " · auto refresh 5 min" : ""}
+        </span>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

@@ -64,17 +64,17 @@ webinar dashboard.
 
 ---
 
-## KEHOEGROUP Sales Tracker (`/dashboard`)
+## KEHOEGROUP DM Tracker (`/dm-tracker`)
 
-A separate single-file app at [`dashboard/index.html`](dashboard/index.html): an
-outreach-to-cash tracker for the KEHOEGROUP DM funnel (initials -> replies ->
+A separate single-file app at [`dm-tracker/index.html`](dm-tracker/index.html): an
+outreach-to-cash DM tracker for the KEHOEGROUP DM funnel (initials -> replies ->
 booked -> shown -> closed). Reads the "Daily Log" and "Replies" tabs of a
 Google Sheet live.
 
 One-time setup: in the Sheet, **Share -> General access -> Anyone with the link
 (Viewer)**, then paste the sheet's normal URL into `SHEET_URL` in the CONFIG
-block at the top of `dashboard/index.html`. From then on the tracker pulls the
+block at the top of `dm-tracker/index.html`. From then on the tracker pulls the
 sheet on every open and every 5 minutes; nothing is downloaded by hand.
 (Publish-to-web CSV links still work as an explicit override.) Until configured
-it runs on clearly badged sample data. Vercel serves it at `/dashboard/` with
+it runs on clearly badged sample data. Vercel serves it at `/dm-tracker/` (the old `/dashboard/` URL redirects) with
 no build step.
