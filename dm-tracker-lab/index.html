@@ -354,6 +354,20 @@
   .flog-row .fnote { color: var(--steel); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .flog-row .fnote.alert { color: #C9A227; }
 
+  /* pipeline aging chips */
+  .age { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .06em; color: var(--steel); border: 1px solid var(--line); border-radius: 3px; padding: 2px 6px; white-space: nowrap; }
+  .age.aging { color: #C9A227; border-color: rgba(201,162,39,0.45); }
+  .age.stale { color: var(--red); border-color: rgba(225,20,20,0.5); }
+
+  /* field log warnings */
+  .flog-row .fd.warn { color: #C9A227; }
+
+  /* finish pass */
+  ::selection { background: var(--red); color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+  * { scrollbar-width: thin; scrollbar-color: #2E2E2E transparent; }
+  @media (min-width: 900px) { .hero { grid-template-columns: 1fr 1.4fr 1fr 1fr; } }
+
   /* planning console summary */
   .plan-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--steel); }
   .plan-sum b { color: var(--bone); font-size: 15px; }
@@ -401,6 +415,18 @@ function sheetCsvUrl(tab) {
 }
 const DAILY_URL   = DAILY_LOG_CSV_URL || sheetCsvUrl(DAILY_LOG_TAB);
 const REPLIES_URL = REPLIES_CSV_URL || sheetCsvUrl(REPLIES_TAB);
+
+// Optional third feed: the per lead follow up scheduler sheet. Tab name is
+// probed from the candidates below; if none parse, the tracker falls back to
+// the SOP cohort model for the load forecast.
+const LEADS_SHEET_URL = "https://docs.google.com/spreadsheets/d/10xh4gB9vHChLIzf67lUto6Bvnp44_wc2uYbJOsBzUYo/edit?usp=sharing";
+const LEADS_TABS = ["Lead Tracker", "Leads", "LEAD TRACKER", "Sheet1", ""];
+function leadsCsvUrls() {
+  const m = String(LEADS_SHEET_URL).match(/\/d\/([\w-]+)/);
+  if (!m) return [];
+  return LEADS_TABS.map((t) => "https://docs.google.com/spreadsheets/d/" + m[1]
+    + "/gviz/tq?tqx=out:csv" + (t ? "&sheet=" + encodeURIComponent(t) : ""));
+}
 
 // 'DMY' (Irish sheets), 'MDY', or 'auto' to detect from the data.
 const DATE_FORMAT = "auto";
@@ -619,6 +645,61 @@ function parseReplies(csvText) {
   return out;
 }
 
+// Lead scheduler dates are allowed to be in the future (that is the point),
+// so no year rollback here; strict formats only.
+function parseLeadDate(s) {
+  const str = String(s || "").trim();
+  if (!str) return null;
+  let m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = str.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+  if (m) { let y = +m[3]; if (y < 100) y += 2000; return new Date(y, +m[2] - 1, +m[1]); }
+  return null;
+}
+function parseLeads(csvText) {
+  const rows = Papa.parse(csvText, { skipEmptyLines: false }).data;
+  const h = findHeaderRow(rows, ["handle", "next due"]);
+  if (h === -1) throw new Error("Leads: header row not found.");
+  const H = rows[h];
+  const ci = {
+    handle: colIndex(H, "handle"),
+    account: colIndex(H, "account"),
+    name: colIndex(H, "name"),
+    niche: colIndex(H, "niche"),
+    nextTouch: colIndex(H, "next touch"),
+    nextDue: colIndex(H, "next due date", "next due"),
+    status: colIndex(H, "status"),
+  };
+  const out = [];
+  for (const r of rows.slice(h + 1)) {
+    if (isJunkRow(r)) continue;
+    const handle = String(r[ci.handle] || "").trim();
+    if (!handle) continue;
+    out.push({
+      handle,
+      account: String(r[ci.account] || "").trim(),
+      name: String(r[ci.name] || "").trim(),
+      niche: String(r[ci.niche] || "").trim(),
+      nextTouch: String(r[ci.nextTouch] || "").trim(),
+      nextDue: parseLeadDate(r[ci.nextDue]),
+      status: String(r[ci.status] || "").trim(),
+    });
+  }
+  return out;
+}
+function sampleLeadsCsv() {
+  const today = new Date();
+  const iso = (off) => dayKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() + off));
+  const rows = ["Handle,Account,Name,Niche,Last Touch Sent,Date Last Sent,Next Touch,Next Due Date,Status,Due?,Notes"];
+  const mk = (h, touch, off, status) => rows.push([h, "Acc 1", "", "Trading", "", "", touch, iso(off), status || "Active", "", ""].join(","));
+  ["@fx_lead1", "@fx_lead2", "@ai_lead3"].forEach((h, i) => mk(h, "Touch 4", -2 + i));
+  ["@ec_lead4", "@ec_lead5", "@re_lead6", "@re_lead7"].forEach((h) => mk(h, "FU wk2-4", 0));
+  ["@tr_lead8", "@tr_lead9"].forEach((h) => mk(h, "Touch 5", 1));
+  ["@tr_lead10", "@ai_lead11", "@ec_lead12"].forEach((h) => mk(h, "FU mon2-3", 2));
+  mk("@dead_lead", "Reactivation", 5, "Replied");
+  return rows.join("\n");
+}
+
 /* ============================================================================
    Sample data (used only while the CSV URLs above are blank). Mimics the real
    sheet layout, header block and example row included, so it exercises the
@@ -815,12 +896,19 @@ function weeklySums(daily, replies) {
    Field log: the last logged days as a terminal ledger, including the
    setter's EOD notes, which otherwise never surface anywhere.
 ============================================================================ */
-function FieldLog({ daily, replies }) {
+function FieldLog({ daily, replies, capacity }) {
   const rByDay = new Map();
   replies.forEach((r) => {
     const k = dayKey(r.date);
     rByDay.set(k, (rByDay.get(k) || 0) + 1);
   });
+  const anyCmts = daily.some((r) => r.comments > 0);
+  const flagsOf = (r) => {
+    const f = [];
+    if (capacity > 0 && r.initials < capacity * 0.5) f.push("volume under half target");
+    if (anyCmts && r.comments === 0) f.push("no comments logged");
+    return f;
+  };
   const rows = daily.slice(-9).reverse();
   return (
     <div className="card">
@@ -830,7 +918,8 @@ function FieldLog({ daily, replies }) {
       </div>
       {rows.map((r, i) => (
         <div className="flog-row" key={i}>
-          <span className="fd">{shortDate(r.date)}</span>
+          <span className={"fd" + (flagsOf(r).length ? " warn" : "")}
+            title={flagsOf(r).join(", ") || undefined}>{shortDate(r.date)}{flagsOf(r).length > 0 && " ⚠"}</span>
           <span>{fmtInt(r.initials)}</span>
           <span>{fmtInt(r.followUps)}</span>
           <span>{r.comments > 0 ? fmtInt(r.comments) : "·"}</span>
@@ -842,6 +931,71 @@ function FieldLog({ daily, replies }) {
       ))}
       {rows.length === 0 && <div className="chart-note">Logged days land here.</div>}
       <div className="chart-note">Notes come straight from the EOD form. Anything written there is an operational flag worth reading.</div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   Load forecast: what the SOP says tomorrow owes, from the cohort model.
+============================================================================ */
+function LoadForecast({ daily, leads }) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const stat = (label, val, red) => (
+    <div>
+      <div className="mono label">{label}</div>
+      <div className="display sv" style={red ? { color: C.red } : null}>{fmtInt(val)}</div>
+    </div>
+  );
+
+  // Preferred source: the per lead scheduler sheet, the real queue.
+  const active = leads.filter((l) => l.nextDue && l.status.toLowerCase() !== "replied");
+  if (active.length > 0) {
+    const overdue = active.filter((l) => l.nextDue < today).length;
+    const dueToday = active.filter((l) => dayKey(l.nextDue) === dayKey(today)).length;
+    const dueTomorrow = active.filter((l) =>
+      dayKey(l.nextDue) === dayKey(new Date(today.getTime() + DAY_MS))).length;
+    const ladderQ = active.filter((l) => l.nextDue <= today && /^touch/i.test(l.nextTouch)).length;
+    const fuQ = active.filter((l) => l.nextDue <= today && !/^touch/i.test(l.nextTouch)).length;
+    return (
+      <div className="card">
+        <h2 className="sec">Follow Up Queue, live from the lead sheet</h2>
+        <div className="streaks">
+          {stat("Overdue", overdue, overdue > 0)}
+          {stat("Due today", dueToday)}
+          {stat("Due tomorrow", dueTomorrow)}
+        </div>
+        <div className="chart-note">
+          Of everything due or overdue right now: {fmtInt(ladderQ)} ladder touches, {fmtInt(fuQ)} evergreen follow ups, across {fmtInt(active.length)} open leads.
+          {overdue > 0 && " Red rows in the lead sheet are stacking up, work them to zero per the SOP."}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback: the SOP cohort model estimate from the daily log.
+  const tomorrow = new Date(today.getTime() + DAY_MS);
+  let ladder = 0, evergreen = 0;
+  for (const c of daily) {
+    const age = Math.round((tomorrow - c.date) / DAY_MS);
+    if (age >= 1 && age <= 3) ladder += c.initials;
+    else if (age >= 8 && age <= 28) evergreen += c.initials / 3;
+    else if (age >= 29 && age <= 90) evergreen += c.initials / 7;
+    else if (age >= 91) evergreen += c.initials / 30;
+  }
+  const total = ladder + evergreen;
+  return (
+    <div className="card">
+      <h2 className="sec">Tomorrow's Load, SOP estimate</h2>
+      <div className="streaks">
+        {stat("Ladder messages", ladder)}
+        {stat("Evergreen touches", evergreen)}
+        {stat("Total owed", total, total > 450)}
+      </div>
+      <div className="chart-note">
+        Estimated from the daily log cohorts and the SOP cadence. Connects to the lead scheduler sheet automatically when it is reachable.
+        {total > 450 && " This load is beyond one setter's day, Tier 3 slips first per the Follow Up SOP."}
+      </div>
     </div>
   );
 }
@@ -1322,6 +1476,14 @@ function displayName(r) {
 function PipelinePanel({ replies }) {
   const rows = [...replies].sort((a, b) => b.date - a.date);
   const stage = (r) => (r.closed ? "closed" : r.showed ? "shown" : r.booked ? "booked" : "replied");
+  const nowP = new Date();
+  const todayP = new Date(nowP.getFullYear(), nowP.getMonth(), nowP.getDate());
+  const ageOf = (r) => Math.max(0, Math.round((todayP - r.date) / DAY_MS));
+  const ageClass = (r) => {
+    if (stage(r) !== "replied") return "";
+    const a = ageOf(r);
+    return a > 7 ? " stale" : a >= 2 ? " aging" : "";
+  };
   return (
     <div className="card">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
@@ -1333,6 +1495,7 @@ function PipelinePanel({ replies }) {
         {rows.map((r, i) => (
           <div className="pipe-row" key={i}>
             <span className="pipe-name">{displayName(r)}</span>
+            {!r.closed && <span className={"age" + ageClass(r)} title={"replied " + ageOf(r) + " days ago"}>{ageOf(r)}d</span>}
             <span className={"chip " + stage(r)}>{stage(r)}</span>
             {r.closed && r.cash > 0 && (
               <span className="pipe-money">
@@ -1783,6 +1946,7 @@ const usingSampleData = !DAILY_URL || !REPLIES_URL;
 function App() {
   const [daily, setDaily] = useState(null);
   const [replies, setReplies] = useState(null);
+  const [leads, setLeads] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -1821,6 +1985,22 @@ function App() {
       }
       setDaily(parseDailyLog(dailyText));
       setReplies(parseReplies(repliesText));
+      // Leads feed is best effort: probe tab candidates, fall back silently.
+      let leadRows = [];
+      if (usingSampleData) {
+        try { leadRows = parseLeads(sampleLeadsCsv()); } catch (e) {}
+      } else {
+        const bust2 = "cb=" + Date.now();
+        for (const u of leadsCsvUrls()) {
+          try {
+            const resp = await fetch(u + (u.includes("?") ? "&" : "?") + bust2);
+            if (!resp.ok) continue;
+            leadRows = parseLeads(await resp.text());
+            break;
+          } catch (e) {}
+        }
+      }
+      setLeads(leadRows);
       setLastUpdated(new Date());
     } catch (e) {
       setError(e.message || String(e));
@@ -1906,6 +2086,29 @@ function App() {
     : weeksH < 9 ? fmtNum(weeksH, 1) + " wks"
     : fmtNum(weeksH / 4.345, 1) + " mo";
 
+  // Month end projection: banked cash, plus the open pipeline weighted by
+  // stage, plus remaining sends this month damped hard for close lag.
+  const projection = (() => {
+    const todayH = new Date(nowH.getFullYear(), nowH.getMonth(), nowH.getDate());
+    const monthEnd = new Date(nowH.getFullYear(), nowH.getMonth() + 1, 0);
+    let pipe = 0;
+    (replies || []).forEach((r) => {
+      if (r.closed) return;
+      if (r.showed) pipe += calc.closeRate * calc.aov;
+      else if (r.booked) pipe += calc.showRate * calc.closeRate * calc.aov;
+      else pipe += brH * calc.showRate * calc.closeRate * calc.aov;
+    });
+    let remDays = 0;
+    for (let t = todayH.getTime() + DAY_MS; t <= monthEnd.getTime(); t += DAY_MS) {
+      if (new Date(t).getDay() !== 0) remDays++;
+    }
+    const last7H = (daily || []).slice(-7);
+    const pace7 = last7H.length ? last7H.reduce((s, r) => s + r.initials, 0) / last7H.length : 0;
+    const rrateH = m.replyRate > 0 ? m.replyRate : FALLBACK_REPLY_RATE;
+    const future = remDays * pace7 * rrateH * brH * calc.showRate * calc.closeRate * calc.aov * 0.35;
+    return cashMTD + pipe + future;
+  })();
+
   return (
     <div className="wrap">
       <div className="sweep" aria-hidden="true" />
@@ -1964,6 +2167,11 @@ function App() {
           <div className="hsub">{fmtPct(goalPct / 100, 0)} of {fmtEuro(calc.goal)} · marker = today</div>
         </div>
         <div className="card hero-cell">
+          <div className="mono label">Projected month end</div>
+          <div className="display hnum"><CountUp value={projection} format={fmtEuro} /></div>
+          <div className="hsub">{fmtPct(safeDiv(projection, calc.goal), 0)} of goal · pipeline weighted, new sends damped for close lag</div>
+        </div>
+        <div className="card hero-cell">
           <div className="mono label">Time to goal, {fmtInt(calc.capacity)} a day</div>
           <div className="display hnum">{timeToGoalH}</div>
           <div className="hsub">at live rates + calculator settings</div>
@@ -2020,6 +2228,7 @@ function App() {
             <FunnelView m={m} />
           </div>
           <div className="mt"><ReplyWindows replies={fReplies} /></div>
+          <div className="mt"><LoadForecast daily={daily || []} leads={leads} /></div>
         </div>
         <div>
           <ProgressPanel allDaily={daily || []} allReplies={replies || []} calc={calc} m={m}
@@ -2030,7 +2239,7 @@ function App() {
       </div>
 
       <div className="grid2 mt">
-        <FieldLog daily={daily || []} replies={replies || []} />
+        <FieldLog daily={daily || []} replies={replies || []} capacity={calc.capacity} />
         <ActivityPanel daily={fDaily} replies={fReplies} />
       </div>
 
