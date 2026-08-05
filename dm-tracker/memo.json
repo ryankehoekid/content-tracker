@@ -1,0 +1,31 @@
+{
+  "date": "2026-08-05",
+  "week": "Jul 30 - Aug 5",
+  "headline": "The constraint is the message, not the machine. Ladder at 6.2 follow ups per initial, comments at 96% coverage, logging 6 for 6, yet reply rate sits at 1.2% on 642 sends. Check the flagged IG account before touching copy.",
+  "sections": [
+    {
+      "title": "Binding constraint",
+      "text": "Execution went from suspect to clean this week, so the 1.2% all time reply rate (4 replies on 413 sends this week, about 1.0%) is now legitimately a first touch problem against a 3% floor. Before rewriting the opener, rule out deliverability: the Aug 3 EOD note says the first account has problems, and a throttled account produces exactly this signature. Account health check first, then rotate the opener."
+    },
+    {
+      "title": "Week over week",
+      "text": "Initials 413 vs 229 (+80%). Follow ups 2,549 vs 818 (+212%). Comments 395 logged, about 96% of initials. Replies 4 vs 4: volume nearly doubled, replies flat, which reinforces the constraint above. Booked 0 this week, shown 0, closed 0, cash EUR 0. Daily pace about 69 initials vs the 100 target."
+    },
+    {
+      "title": "Pipeline",
+      "text": "Three Tier 1 replies are stale past 7 days unbooked: Owen the ai guy (10d), mrplusmoney (9d), cblez (9d). Adam and Matt are at 2 days. Ryan and rahul replied within the last day and are live conversations right now. Booking sits at 1 of 8 replies; two more replies and the tracker scores that rate officially."
+    },
+    {
+      "title": "Lead sheet",
+      "text": "All 70 tracked leads show Date Last Sent of 31 July and every row is overdue (22 mid ladder due Aug 1, 48 evergreen due Aug 3), while the EOD form reports 400+ follow ups a day. Both cannot be fully true: either those sends go to leads the sheet does not track yet, or the sheet stopped being updated on day one. Settle which, or the queue data becomes decoration."
+    },
+    {
+      "title": "Cash pace",
+      "text": "EUR 0 collected of the EUR 30,000 goal with 27 days left. Honest projection at current rates is roughly EUR 2,000 unless replies to booked moves. The month is winnable only through the two levers above: fix the reply rate and book the replies that already exist."
+    },
+    {
+      "title": "Watch next week",
+      "text": "Replies per 100 sends after the account check. Stale Tier 1 count driven to zero. Lead sheet freshness."
+    }
+  ]
+}
