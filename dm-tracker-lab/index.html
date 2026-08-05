@@ -32,6 +32,19 @@
     font-family: 'Archivo', system-ui, sans-serif;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    border-top: 3px solid var(--red);
+  }
+  /* film grain over the ink */
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 2147483647; pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+  }
+  .card, .tile { transition: border-color .25s ease, transform .25s ease; }
+  .card:hover { border-color: #333333; }
+  .tile:hover { border-color: #3D3D3D; transform: translateY(-1px); }
+  @media (prefers-reduced-motion: reduce) {
+    .tile:hover { transform: none; }
   }
   .display { font-family: 'Archivo Black', 'Archivo', sans-serif; font-weight: 400; }
   .mono {
@@ -193,11 +206,24 @@
   .rw-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
   .rw-stats > div { background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
   .rw-big { font-size: 24px; margin: 6px 0 4px; }
-  .rw-row { display: flex; align-items: center; gap: 12px; padding: 7px 0; }
-  .rw-label { flex: none; width: 138px; }
-  .rw-track { flex: 1; height: 10px; background: var(--ink); border-radius: 5px; overflow: hidden; }
-  .rw-bar { display: block; height: 100%; border-radius: 5px; transition: width .3s ease; }
-  .rw-count { flex: none; width: 26px; text-align: right; font-size: 15px; }
+  .hm-row { display: flex; gap: 3px; }
+  .hm-cell { flex: 1; min-width: 5px; height: 30px; border-radius: 3px; transition: transform .15s ease; }
+  .hm-cell:hover { transform: scaleY(1.15); }
+  .hm-labels { display: flex; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .08em; color: var(--steel); margin-top: 7px; }
+
+  /* sparklines */
+  .spark { display: block; margin-top: 8px; }
+
+  /* funnel motion */
+  @keyframes fgrow { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+  .fbar { animation: fgrow .6s cubic-bezier(.16, 1, .3, 1) both; transition: filter .2s ease; }
+  .fbar:hover { filter: brightness(1.25); }
+  @media (prefers-reduced-motion: reduce) { .fbar { animation: none; } }
+
+  /* pace marker */
+  .pbar { position: relative; overflow: visible; }
+  .pbar .fill { border-radius: 9px; }
+  .pace-mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--bone); opacity: .65; border-radius: 1px; }
 
   /* funnel */
   .fstage + .fstage { margin-top: 0; }
@@ -593,19 +619,63 @@ function Badge({ kind, children }) {
   return <span className={"badge " + kind}>{children}</span>;
 }
 
-function Tile({ label, value, sub, red, delta }) {
+const REDUCED_MOTION = typeof matchMedia !== "undefined"
+  && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Animates a number toward its target on load and on refresh.
+function CountUp({ value, format }) {
+  const [disp, setDisp] = useState(REDUCED_MOTION ? value : 0);
+  const prev = React.useRef(REDUCED_MOTION ? value : 0);
+  useEffect(() => {
+    const from = prev.current, to = value;
+    prev.current = value;
+    if (REDUCED_MOTION || from === to) { setDisp(to); return; }
+    const t0 = performance.now(), dur = 650;
+    let raf;
+    const step = (t) => {
+      const p = Math.min((t - t0) / dur, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      setDisp(from + (to - from) * e);
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return format(disp);
+}
+
+// 14 day micro trendline: steel line, red dot on today.
+function Spark({ data }) {
+  if (!data || !data.some((v) => v > 0)) return null;
+  const w = 96, h = 24, max = Math.max(...data, 1);
+  const pts = data.map((v, i) =>
+    (i / (data.length - 1)) * w + "," + (h - 2 - (v / max) * (h - 7)));
+  const last = pts[pts.length - 1].split(",");
+  return (
+    <svg width={w} height={h} className="spark" aria-hidden="true">
+      <polyline points={pts.join(" ")} fill="none" stroke="#5A5A5A"
+        strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={last[0]} cy={last[1]} r="2.5" fill={C.red} />
+    </svg>
+  );
+}
+
+function Tile({ label, num, format, sub, red, delta, spark }) {
   const cls = delta > 0.02 ? "up" : delta < -0.02 ? "down" : "flat";
   const arrow = delta > 0.02 ? "▲" : delta < -0.02 ? "▼" : "·";
   return (
     <div className="tile">
       <div className="mono tlabel">{label}</div>
-      <div className="display val" style={red ? { color: C.red } : null}>{value}</div>
+      <div className="display val" style={red ? { color: C.red } : null}>
+        <CountUp value={num} format={format} />
+      </div>
       {sub ? <div className="sub">{sub}</div> : <div className="sub">&nbsp;</div>}
       {delta !== null && delta !== undefined && (
         <div className={"wdelta " + cls}>
           {arrow} {Math.abs(delta) < 0.005 ? "flat" : Math.round(Math.abs(delta) * 100) + "%"} vs last wk
         </div>
       )}
+      {spark && <Spark data={spark} />}
     </div>
   );
 }
@@ -664,7 +734,7 @@ function FunnelView({ m }) {
               )}
             </div>
             <div className="fbar-row">
-              <div className="fbar" style={{ width: w + "%", background: fills[i] }}>
+              <div className="fbar" style={{ width: w + "%", background: fills[i], animationDelay: i * 90 + "ms" }}>
                 <span className="display fval">{fmtInt(s.value)}</span>
               </div>
             </div>
@@ -1004,16 +1074,18 @@ function ReplyWindows({ replies }) {
           <div className="hdetail">across {hours.length} timed replies</div>
         </div>
       </div>
-      {TIME_BANDS.map((b, i) => (
-        <div className="rw-row" key={b.label}>
-          <span className="mono label rw-label">{b.label} {b.range}</span>
-          <span className="rw-track"><span className="rw-bar" style={{
-            width: (counts[i] / max) * 100 + "%",
-            background: i === top && counts[i] > 0 ? C.red : "#3A3A3A",
-          }} /></span>
-          <span className="rw-count display">{counts[i]}</span>
-        </div>
-      ))}
+      <div className="hm-row">
+        {Array.from({ length: 24 }, (_, h) => {
+          const c = hours.filter((x) => Math.floor(x) === h).length;
+          const hmax = Math.max(...Array.from({ length: 24 }, (_, k) => hours.filter((x) => Math.floor(x) === k).length), 1);
+          return (
+            <span key={h} className="hm-cell"
+              title={String(h).padStart(2, "0") + ":00, " + c + (c === 1 ? " reply" : " replies")}
+              style={{ background: c > 0 ? "rgba(225,20,20," + (0.18 + 0.82 * (c / hmax)).toFixed(2) + ")" : "#1E1E1E" }} />
+          );
+        })}
+      </div>
+      <div className="hm-labels"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
       <div className="chart-note">
         {counts[top] > 0 && "Busiest so far: " + TIME_BANDS[top].label.toLowerCase() + ", " + TIME_BANDS[top].range + ". "}
         Times on {hours.length} of {replies.length} replies.
@@ -1202,8 +1274,11 @@ function ProgressPanel({ allDaily, allReplies, calc, liveReplyRate, liveBookingR
         <span className="display" style={{ fontSize: 34, color: C.red }}>{fmtEuro(cashMTD)}</span>
         <span className="mono label-lg">of {fmtEuro(goal)} goal</span>
       </div>
-      <div className="pbar"><div className="fill" style={{ width: pct + "%" }} /></div>
-      <div className="mono label">{fmtPct(pct / 100, 0)} collected</div>
+      <div className="pbar">
+        <div className="fill" style={{ width: pct + "%" }} />
+        <span className="pace-mark" style={{ left: Math.min((now.getDate() / new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()) * 100, 100) + "%" }} />
+      </div>
+      <div className="mono label">{fmtPct(pct / 100, 0)} collected · marker is where today sits in the month</div>
 
       <div className="pgrid">
         {stat("Gap remaining", fmtEuro(gap))}
@@ -1444,6 +1519,31 @@ function App() {
   const fReplies = useMemo(() => (replies || []).filter((r) => inRange(r.date)), [replies, range, customFrom, customTo]);
   const m = useMemo(() => computeMetrics(fDaily, fReplies), [fDaily, fReplies]);
   const wow = useMemo(() => weekOverWeek(daily || [], replies || []), [daily, replies]);
+  // Last 14 calendar days, zero filled, for the tile sparklines.
+  const sparks = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const byDay = new Map((daily || []).map((r) => [dayKey(r.date), r]));
+    const rBy = new Map();
+    (replies || []).forEach((r) => {
+      const k = dayKey(r.date);
+      if (!rBy.has(k)) rBy.set(k, { n: 0, booked: 0, cash: 0 });
+      const o = rBy.get(k);
+      o.n++; if (r.booked) o.booked++; o.cash += r.cash;
+    });
+    const out = { initials: [], followUps: [], comments: [], replies: [], booked: [], cash: [] };
+    for (let i = 13; i >= 0; i--) {
+      const k = dayKey(new Date(today.getTime() - i * DAY_MS));
+      const d = byDay.get(k), rp = rBy.get(k);
+      out.initials.push(d ? d.initials : 0);
+      out.followUps.push(d ? d.followUps : 0);
+      out.comments.push(d ? d.comments : 0);
+      out.replies.push(rp ? rp.n : 0);
+      out.booked.push(rp ? rp.booked : 0);
+      out.cash.push(rp ? rp.cash : 0);
+    }
+    return out;
+  }, [daily, replies]);
 
   if (loading && !daily) {
     return (
@@ -1506,14 +1606,14 @@ function App() {
 
       {/* Headline tiles */}
       <section className="tiles">
-        <Tile label="Initials sent" value={fmtInt(m.initials)} delta={wow.initials} sub={<span><b>{fmtInt(m.touches)}</b> total touches</span>} />
-        <Tile label="Follow ups sent" value={fmtInt(m.followUps)} delta={wow.followUps} sub={<span><b>{fmtNum(safeDiv(m.followUps, m.initials), 1)}</b> per initial</span>} />
-        <Tile label="Comments sent" value={fmtInt(m.comments)} delta={wow.comments} sub={<span><b>{fmtPct(m.commentCoverage, 0)}</b> of initials</span>} />
-        <Tile label="Replies" value={fmtInt(m.replies)} delta={wow.replies} sub={<span><b>{fmtPct(m.replyRate)}</b> reply rate</span>} />
-        <Tile label="Calls booked" value={fmtInt(m.booked)} delta={wow.booked} sub={<span><b>{fmtPct(m.bookingRate)}</b> of replies</span>} />
-        <Tile label="Calls shown" value={fmtInt(m.shown)} sub={<span><b>{fmtPct(m.showRate)}</b> show rate</span>} />
-        <Tile label="Clients closed" value={fmtInt(m.closed)} sub={<span><b>{fmtPct(m.closeRate)}</b> close rate</span>} />
-        <Tile label="Cash collected" value={fmtEuro(m.cash)} red delta={wow.cash} sub={<span><b>{fmtEuro(m.outstanding)}</b> outstanding</span>} />
+        <Tile label="Initials sent" num={m.initials} format={fmtInt} delta={wow.initials} spark={sparks.initials} sub={<span><b>{fmtInt(m.touches)}</b> total touches</span>} />
+        <Tile label="Follow ups sent" num={m.followUps} format={fmtInt} delta={wow.followUps} spark={sparks.followUps} sub={<span><b>{fmtNum(safeDiv(m.followUps, m.initials), 1)}</b> per initial</span>} />
+        <Tile label="Comments sent" num={m.comments} format={fmtInt} delta={wow.comments} spark={sparks.comments} sub={<span><b>{fmtPct(m.commentCoverage, 0)}</b> of initials</span>} />
+        <Tile label="Replies" num={m.replies} format={fmtInt} delta={wow.replies} spark={sparks.replies} sub={<span><b>{fmtPct(m.replyRate)}</b> reply rate</span>} />
+        <Tile label="Calls booked" num={m.booked} format={fmtInt} delta={wow.booked} spark={sparks.booked} sub={<span><b>{fmtPct(m.bookingRate)}</b> of replies</span>} />
+        <Tile label="Calls shown" num={m.shown} format={fmtInt} sub={<span><b>{fmtPct(m.showRate)}</b> show rate</span>} />
+        <Tile label="Clients closed" num={m.closed} format={fmtInt} sub={<span><b>{fmtPct(m.closeRate)}</b> close rate</span>} />
+        <Tile label="Cash collected" num={m.cash} format={fmtEuro} red delta={wow.cash} spark={sparks.cash} sub={<span><b>{fmtEuro(m.outstanding)}</b> outstanding</span>} />
       </section>
 
       <HealthBoard daily={daily || []} replies={replies || []} capacity={calc.capacity} />
@@ -1525,7 +1625,7 @@ function App() {
           <div>
             <div className="mono label">Cash per initial sent</div>
             <div className="display" style={{ fontSize: 44, color: C.red, margin: "8px 0 4px" }}>
-              {fmtEuro(m.cashPerInitial, 2)}
+              <CountUp value={m.cashPerInitial} format={(v) => fmtEuro(v, 2)} />
             </div>
             <div className="sub">What one cold DM is worth. The scaling decision number.</div>
           </div>
