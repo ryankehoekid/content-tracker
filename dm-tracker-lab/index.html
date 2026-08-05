@@ -374,6 +374,25 @@
   .memo-sec { border-top: 1px solid #1E1E1E; margin-top: 12px; padding-top: 10px; }
   .memo-sec p { font-size: 13px; line-height: 1.65; color: #C9C7C2; margin-top: 5px; }
 
+
+  /* overseer */
+  .lever-grid { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: center; margin-top: 12px; }
+  @media (min-width: 900px) { .lever-grid { grid-template-columns: 320px 1fr; } }
+  .wheel { display: block; max-width: 320px; margin: 0 auto; }
+  .wseg { transition: filter .2s ease; }
+  .wseg:hover { filter: brightness(1.35); }
+  .lever-row { display: flex; gap: 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid #1E1E1E; }
+  .lever-row:last-of-type { border-bottom: none; }
+  .lever-rank { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--red); font-weight: 700; }
+  .lever-name { font-size: 14px; font-weight: 600; }
+  .lever-detail { font-size: 11px; color: var(--steel); margin-top: 2px; }
+  .lever-val { font-size: 17px; }
+  .lever-per { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--steel); letter-spacing: .06em; }
+  .basis { font-family: 'Space Mono', monospace; font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase; border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px; margin-left: 8px; color: var(--steel); vertical-align: 2px; }
+  .basis.b-measured { color: #4CAF6D; border-color: rgba(76,175,109,.4); }
+  .basis.b-hypothesis { color: #C9A227; border-color: rgba(201,162,39,.4); }
+  .ov-brief { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 12px; }
+
   /* planning console summary */
   .plan-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--steel); }
   .plan-sum b { color: var(--bone); font-size: 15px; }
@@ -1375,6 +1394,159 @@ function MemoPanel() {
 }
 
 /* ============================================================================
+   The Overseer: the lever wheel prices every controllable lever in euros of
+   monthly cash from the live funnel, and the strategy brief below it is
+   written weekly from the Operator Playbook. Levers overlap, so the wheel
+   never sums them; the center carries the single biggest lever.
+============================================================================ */
+function fmtEuroK(v) {
+  return v >= 1000 ? "\u20ac" + (v / 1000).toFixed(1) + "k" : fmtEuro(v);
+}
+function computeLevers(daily, replies, leads, m, calc) {
+  const s = computeSignals(daily, replies, calc.capacity);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const pace = s.pace;
+  const rrMeasured = m.replyRate > 0;
+  const rr = rrMeasured ? m.replyRate : FALLBACK_REPLY_RATE;
+  const br = m.bookingRate > 0 ? m.bookingRate : FALLBACK_BOOKING_RATE;
+  const sr = calc.showRate, cr = calc.closeRate, aov = calc.aov, days = calc.sendDays;
+  const perInitial = rr * br * sr * cr * aov;
+  const L = [];
+  if (pace < calc.capacity) {
+    L.push({ name: "Volume back to " + fmtInt(calc.capacity) + " a day", per: "mo",
+      value: (calc.capacity - pace) * days * perInitial,
+      detail: fmtInt(pace) + " a day now. Every account sending.",
+      basis: rrMeasured ? "measured" : "assumed" });
+  }
+  if (rr < KPI.replyRate[0]) {
+    L.push({ name: "Reply rate to " + fmtPct(KPI.replyRate[0], 0), per: "mo",
+      value: pace * days * (KPI.replyRate[0] - rr) * br * sr * cr * aov,
+      detail: fmtPct(rr) + " now. Deliverability, then opener, then sourcing.",
+      basis: "measured" });
+  }
+  if (m.replies >= 5 && m.bookingRate < KPI.bookingRate[0]) {
+    L.push({ name: "Booking rate to " + fmtPct(KPI.bookingRate[0], 0), per: "mo",
+      value: pace * days * rr * (KPI.bookingRate[0] - br) * sr * cr * aov,
+      detail: fmtPct(br) + " now. Speed to reply, route to the call.",
+      basis: m.replies >= 10 ? "measured" : "hypothesis" });
+  }
+  const closesMo = pace * days * rr * br * sr * cr;
+  if (closesMo > 0) {
+    L.push({ name: "Cash per close 5k to 7.5k", per: "mo",
+      value: closesMo * 2500,
+      detail: "Bigger first payment on the same deals. Scales with every fix above.",
+      basis: "assumed" });
+  }
+  if (s.stale > 0) {
+    L.push({ name: "Book the stale Tier 1 replies", per: "one time",
+      value: s.stale * br * sr * cr * aov,
+      detail: s.stale + " replies past 7 days unbooked.",
+      basis: "hypothesis" });
+  }
+  const overdue = leads.filter((l) => l.nextDue && l.status.toLowerCase() !== "replied" && l.nextDue < today).length;
+  if (overdue > 0) {
+    L.push({ name: "Clear the overdue queue", per: "one time",
+      value: overdue * rr * br * sr * cr * aov,
+      detail: overdue + " leads overdue in the lead sheet.",
+      basis: "hypothesis" });
+  }
+  return L.filter((l) => l.value > 0.5).sort((a, b) => b.value - a.value).slice(0, 6);
+}
+function LeverWheel({ levers }) {
+  if (!levers.length) return null;
+  const total = levers.reduce((s, l) => s + l.value, 0);
+  const max = levers[0].value;
+  const CX = 100, CY = 100, RO = 92, RI = 64, GAP = 4;
+  const rad = (a) => (a * Math.PI) / 180;
+  const pt = (r, a) => (CX + r * Math.cos(rad(a))).toFixed(2) + "," + (CY + r * Math.sin(rad(a))).toFixed(2);
+  let angle = -90;
+  const free = 360 - GAP * levers.length;
+  return (
+    <svg viewBox="0 0 200 200" className="wheel">
+      <defs>
+        <filter id="segglow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor={C.red} floodOpacity="0.55" />
+        </filter>
+      </defs>
+      {levers.map((l, i) => {
+        const sweep = (l.value / total) * free;
+        const a0 = angle, a1 = angle + sweep;
+        angle = a1 + GAP;
+        const large = sweep > 180 ? 1 : 0;
+        const d = "M" + pt(RO, a0) + " A" + RO + " " + RO + " 0 " + large + " 1 " + pt(RO, a1)
+          + " L" + pt(RI, a1) + " A" + RI + " " + RI + " 0 " + large + " 0 " + pt(RI, a0) + " Z";
+        return (
+          <path key={i} d={d} className="wseg"
+            fill={"rgba(225,20,20," + (0.2 + 0.72 * (l.value / max)).toFixed(2) + ")"}
+            stroke="#0A0A0A" strokeWidth="1.5"
+            filter={i === 0 ? "url(#segglow)" : undefined}>
+            <title>{l.name + ": " + fmtEuroK(l.value) + (l.per === "mo" ? " a month" : " one time") + " (" + l.basis + ")"}</title>
+          </path>
+        );
+      })}
+      <text x="100" y="92" textAnchor="middle" fontFamily="'Archivo Black', sans-serif" fontSize="20" fill={C.red}>{fmtEuroK(levers[0].value)}</text>
+      <text x="100" y="105" textAnchor="middle" fontFamily="'Space Mono', monospace" fontSize="6.5" letterSpacing="1" fill={C.steel}>{levers[0].per === "mo" ? "PER MONTH \u00b7 TOP LEVER" : "ONE TIME \u00b7 TOP LEVER"}</text>
+      <text x="100" y="116" textAnchor="middle" fontFamily="'Space Mono', monospace" fontSize="6" letterSpacing="0.5" fill={C.bone}>{levers[0].name.toUpperCase().slice(0, 30)}</text>
+    </svg>
+  );
+}
+function OverseerCard({ daily, replies, leads, m, calc }) {
+  const levers = computeLevers(daily, replies, leads, m, calc);
+  const [brief, setBrief] = useState(null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    fetch("/dm-tracker/overseer.json?cb=" + Date.now())
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => { if (b && b.headline) setBrief(b); })
+      .catch(() => {});
+  }, []);
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
+        <h2 className="sec" style={{ margin: 0 }}>The Overseer, where the next euro is</h2>
+        <span className="mono label">cash collected basis</span>
+      </div>
+      <div className="lever-grid">
+        <LeverWheel levers={levers} />
+        <div>
+          {levers.map((l, i) => (
+            <div className="lever-row" key={i}>
+              <span className="lever-rank">{String(i + 1).padStart(2, "0")}</span>
+              <span>
+                <span className="lever-name">{l.name}</span>
+                <span className={"basis b-" + l.basis}>{l.basis}</span>
+                <div className="lever-detail">{l.detail}</div>
+              </span>
+              <span style={{ marginLeft: "auto", textAlign: "right", whiteSpace: "nowrap" }}>
+                <span className="display lever-val">{fmtEuroK(l.value)}</span>
+                <div className="lever-per">{l.per === "mo" ? "/ month" : "one time"}</div>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="chart-note">Each lever is priced independently from the live funnel; they overlap, so they never sum. All figures use the baseline 70% show, 17.5% close and EUR 5,000 cash per close until those rates are measured.</div>
+      {brief && (
+        <div className="ov-brief">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 10 }}>
+            <span className="mono label-lg">Overseer brief, {shortDate(new Date(brief.date + "T00:00:00"))}</span>
+            <button className="btn" onClick={() => setOpen(!open)}>{open ? "[ Close ]" : "[ Read ]"}</button>
+          </div>
+          <div className="memo-head">{brief.headline}</div>
+          {open && (brief.sections || []).map((s, i) => (
+            <div className="memo-sec" key={i}>
+              <div className="mono label">{s.title}</div>
+              <p>{s.text}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================================
    Rate gauges: each ring fills toward the strong end of its KPI band, with a
    tick at the floor. Red arc = at or above floor, amber = below, gray = not
    enough sample to say.
@@ -2257,6 +2429,8 @@ function App() {
         <HealthBoard daily={daily || []} replies={replies || []} capacity={calc.capacity} />
       </div>
       <Diagnosis daily={daily || []} replies={replies || []} capacity={calc.capacity} m={m} />
+
+      <OverseerCard daily={daily || []} replies={replies || []} leads={leads} m={m} calc={calc} />
 
       <MemoPanel />
 
