@@ -78,3 +78,10 @@ sheet on every open and every 5 minutes; nothing is downloaded by hand.
 (Publish-to-web CSV links still work as an explicit override.) Until configured
 it runs on clearly badged sample data. Vercel serves it at `/dm-tracker/` (the old `/dashboard/` URL redirects) with
 no build step.
+
+### Design lab
+
+`dm-tracker-lab/` is a byte-for-byte sandbox copy of the DM Tracker (marked
+with a LAB badge) served at `/dm-tracker-lab/`. New visual directions get
+tested there; the production tracker at `/dm-tracker/` only changes once a
+design is approved.
