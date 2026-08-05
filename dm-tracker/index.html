@@ -368,6 +368,12 @@
   * { scrollbar-width: thin; scrollbar-color: #2E2E2E transparent; }
   @media (min-width: 900px) { .hero { grid-template-columns: 1fr 1.4fr 1fr 1fr; } }
 
+
+  /* weekly memo */
+  .memo-head { font-size: 14px; font-weight: 600; line-height: 1.6; margin-top: 10px; }
+  .memo-sec { border-top: 1px solid #1E1E1E; margin-top: 12px; padding-top: 10px; }
+  .memo-sec p { font-size: 13px; line-height: 1.65; color: #C9C7C2; margin-top: 5px; }
+
   /* planning console summary */
   .plan-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--steel); }
   .plan-sum b { color: var(--bone); font-size: 15px; }
@@ -1338,6 +1344,37 @@ function Diagnosis({ daily, replies, capacity, m }) {
 }
 
 /* ============================================================================
+   Weekly memo: written by the Monday diagnosis run, served from memo.json
+   beside the tracker. Headline always visible, full memo expands.
+============================================================================ */
+function MemoPanel() {
+  const [memo, setMemo] = useState(null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    fetch("/dm-tracker/memo.json?cb=" + Date.now())
+      .then((r) => (r.ok ? r.json() : null))
+      .then((m) => { if (m && m.headline) setMemo(m); })
+      .catch(() => {});
+  }, []);
+  if (!memo) return null;
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 10 }}>
+        <h2 className="sec" style={{ margin: 0 }}>Weekly Memo, {memo.week}</h2>
+        <button className="btn" onClick={() => setOpen(!open)}>{open ? "[ Close ]" : "[ Read ]"}</button>
+      </div>
+      <div className="memo-head">{memo.headline}</div>
+      {open && (memo.sections || []).map((s, i) => (
+        <div className="memo-sec" key={i}>
+          <div className="mono label">{s.title}</div>
+          <p>{s.text}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ============================================================================
    Rate gauges: each ring fills toward the strong end of its KPI band, with a
    tick at the floor. Red arc = at or above floor, amber = below, gray = not
    enough sample to say.
@@ -2220,6 +2257,8 @@ function App() {
         <HealthBoard daily={daily || []} replies={replies || []} capacity={calc.capacity} />
       </div>
       <Diagnosis daily={daily || []} replies={replies || []} capacity={calc.capacity} m={m} />
+
+      <MemoPanel />
 
       <div className="grid2">
         <div>
