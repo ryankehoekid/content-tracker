@@ -1,0 +1,26 @@
+{
+  "date": "2026-08-05",
+  "headline": "At current measured rates the whole machine ceilings around EUR 1,600 a month. Volume is not the lever right now, rates are: reply rate to its 3% floor is worth roughly EUR 2,500 a month, booking rate to its 25% floor another EUR 1,600. Fix conversion before pushing volume.",
+  "sections": [
+    {
+      "title": "The bottleneck",
+      "text": "Reply rate, with a deliverability suspect attached. 1.2% measured on 642 sends (gate met) against a 3% floor, while ladder and comment execution are healthy. The Aug 3 note flags account 1, and volume has run at exactly two-of-three accounts pace since Aug 1. One MEASURED fact, one HYPOTHESIS: the rate is low (fact), the flagged account is dragging it (hypothesis, testable by splitting replies per account for one week)."
+    },
+    {
+      "title": "Levers, ranked by cash",
+      "text": "1. Reply rate 1.2% to 3%: about EUR 2,500 a month at current volume (MEASURED input, baseline show and close). Order of operations per playbook: deliverability first, opener second, sourcing fit third. 2. Booking rate 12.5% to 25%: about EUR 1,600 a month; 8 replies is just under the 10-reply gate, so treat as directional, but the concrete version is free: Owen, mrplusmoney and cblez are sitting past 7 days unbooked, and Ryan and rahul are live now. 3. Cash per close EUR 5k to 7.5k: only about EUR 800 a month today, but it scales with every upstream fix and costs one pricing decision. 4. Volume 69 to 100 a day: about EUR 750 a month at current rates. That number is the proof that sending more into a 1.2% funnel is the weakest move on the board, and it flips to the strongest once reply rate is fixed."
+    },
+    {
+      "title": "Strategic moves",
+      "text": "One constraint at a time, so this week is the account and the rate: verify account 1 health, restore the third account (aged spare from the benched supplier if needed), and split reply counts per account for one week to isolate deliverability from copy. Second: the cash lag is real, EUR 5k upfront on 10-15k deals means calls booked this month are mostly September cash, so August's honest job is booked calls, not collected cash. Third: pipeline concentration, roughly 60% of the lead sheet is trading; at 300+ sends of trading data, start pricing an AI or ecom batch against it. Fourth: do not think about a second setter yet, the playbook gate (3% reply, 25% booking, queue cleared daily) is not met."
+    },
+    {
+      "title": "What you would miss",
+      "text": "The two records disagree: the EOD form says 400+ follow ups a day, the lead sheet has not been updated since 31 July and shows 70 leads overdue. One of them is wrong and both feed decisions; settle it this week. Also, at current rates every follow up touch carries about EUR 1 of expected cash, which means a skipped 400-touch day quietly costs a client every few weeks. And commission liability is accruing on any cash that lands, 7.5%, worth tracking from the first collected euro."
+    },
+    {
+      "title": "Do not touch",
+      "text": "The daily block schedule, the ladder design, comment coverage (96%), EOD logging discipline (6 for 6), and the reply time pattern, evening replies confirm the money block is placed right. These are working. Tenet 10 applies to the operator too."
+    }
+  ]
+}
