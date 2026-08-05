@@ -1504,7 +1504,7 @@ function OverseerCard({ daily, replies, leads, m, calc }) {
   return (
     <div className="card" style={{ marginBottom: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
-        <h2 className="sec" style={{ margin: 0 }}>The Overseer, where the next euro is</h2>
+        <h2 className="sec" style={{ margin: 0 }}>Palantir, where the next euro is</h2>
         <span className="mono label">cash collected basis</span>
       </div>
       <div className="lever-grid">
@@ -1530,7 +1530,7 @@ function OverseerCard({ daily, replies, leads, m, calc }) {
       {brief && (
         <div className="ov-brief">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 10 }}>
-            <span className="mono label-lg">Overseer brief, {shortDate(new Date(brief.date + "T00:00:00"))}</span>
+            <span className="mono label-lg">Palantir brief, {shortDate(new Date(brief.date + "T00:00:00"))}</span>
             <button className="btn" onClick={() => setOpen(!open)}>{open ? "[ Close ]" : "[ Read ]"}</button>
           </div>
           <div className="memo-head">{brief.headline}</div>
