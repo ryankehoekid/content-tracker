@@ -9,11 +9,12 @@ import { usePublished } from "../core/useData.js";
 import { CountUp, Tile, TypeOn, Reveal } from "../ui/atoms.jsx";
 import PalantirOrb from "../orb/PalantirOrb.jsx";
 
+const MONTHS = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+
 function Hero({ daily, replies, payments, m, calc }) {
   const cm = cashModel(replies, payments);
-  const proj = computeProjection(daily, replies, m, calc, cm.mtd);
   const bands = useMemo(() => forecastBands(daily, replies, m, calc, cm.mtd), [daily, replies, m, calc, cm.mtd]);
-  const goalPct = Math.min(safeDiv(proj.cashMTD, calc.goal), 1);
+  const goalPct = Math.min(safeDiv(cm.mtd, calc.goal), 1);
   const now = new Date();
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const monthFrac = now.getDate() / monthEnd;
@@ -25,38 +26,58 @@ function Hero({ daily, replies, payments, m, calc }) {
     : weeks < 1 ? fmtNum(weeks * 7, 0) + " days"
     : weeks < 9 ? fmtNum(weeks, 1) + " wks"
     : fmtNum(weeks / 4.345, 1) + " mo";
+  // Beam scale runs to the goal or the P90, whichever is larger, so every
+  // marker always lands on the bar.
+  const scale = Math.max(calc.goal, bands.p90, 1);
+  const X = (v) => Math.min(v / scale, 1) * 100 + "%";
+  const bookLow = m.replies < 10;
+  const bookBad = !bookLow && m.bookingRate < KPI.bookingRate[0];
   return (
-    <div className="hero">
-      <Reveal className="card">
-        <div className="label">Cash collected, this month</div>
-        <div className="display hnum red"><CountUp value={proj.cashMTD} format={fmtEuro} /></div>
-        <div className="goalbar">
-          <span className="fill" style={{ width: goalPct * 100 + "%" }} />
-          <span className="pacer" style={{ left: monthFrac * 100 + "%" }} title="where the month is" />
+    <Reveal className="card herostrip">
+      <div className="hs-ghost display" aria-hidden="true">{MONTHS[now.getMonth()].slice(0, 3)}</div>
+      <div className="hs-main">
+        <div className="label">Cash collected · {MONTHS[now.getMonth()].toLowerCase()}</div>
+        <div className="display hs-num"><CountUp value={cm.mtd} format={fmtEuro} /></div>
+        <div className="beam" title="the month, drawn to scale">
+          <span className="beam-fill" style={{ width: X(cm.mtd) }} />
+          <span className="beam-goal" style={{ left: X(calc.goal) }} />
+          <span className="beam-pace" style={{ left: monthFrac * 100 + "%" }} title="where the month is" />
+          <span className="beam-band" style={{ left: X(bands.p10), width: "calc(" + X(bands.p90) + " - " + X(bands.p10) + ")" }} />
+          <span className="beam-p50" style={{ left: X(bands.p50) }} />
         </div>
-        <div className="hsub">{fmtPct(goalPct, 0)} of the {fmtEuro(calc.goal)} goal · white tick = month pace</div>
-      </Reveal>
-      <Reveal className="card" delay={60}>
-        <div className="label">Projected month end</div>
-        <div className="display hnum"><CountUp value={bands.p50} format={fmtEuro} /></div>
-        <div className="band hsub">
-          <span className="lo">P10 {fmtEuroK(bands.p10)}</span>
-          <span>·</span>
-          <span className="hi">P90 {fmtEuroK(bands.p90)}</span>
+        <div className="beam-legend">
+          <span><i className="bl-fill" />banked {fmtPct(goalPct, 0)}</span>
+          <span><i className="bl-band" />forecast P10-P90</span>
+          <span><i className="bl-p50" />P50 {fmtEuroK(bands.p50)}</span>
+          <span><i className="bl-goal" />goal {fmtEuroK(calc.goal)}</span>
+          <span><i className="bl-pace" />month pace</span>
         </div>
-        <div className="hsub">500-run band: pipeline by stage odds, new sends damped for close lag</div>
-      </Reveal>
-      <Reveal className="card" delay={120}>
-        <div className="label">Cash collected, all time</div>
-        <div className="display hnum"><CountUp value={cm.all} format={fmtEuro} /></div>
-        <div className="hsub">{fmtEuro(m.dealValue)} signed · {fmtEuro(Math.max(m.dealValue - cm.all, 0))} outstanding{cm.source === "payments" ? " · payments tab" : ""}</div>
-      </Reveal>
-      <Reveal className="card" delay={180}>
-        <div className="label">Time to goal, {fmtInt(calc.capacity)} a day</div>
-        <div className="display hnum">{timeToGoal}</div>
-        <div className="hsub">at live rates and {fmtInt(calc.sendDays)} send days a month</div>
-      </Reveal>
-    </div>
+      </div>
+      <div className="hs-rail">
+        <div className="hs-stat">
+          <div className="label">Projected month end</div>
+          <div className="display hs-sv"><CountUp value={bands.p50} format={fmtEuro} /></div>
+          <div className="hdetail">{fmtEuroK(bands.p10)} to {fmtEuroK(bands.p90)}, 500 runs</div>
+        </div>
+        <div className="hs-stat">
+          <div className="label">Booking rate</div>
+          <div className={"display hs-sv" + (bookBad ? " bad" : "")}>{bookLow ? "--" : fmtPct(m.bookingRate)}</div>
+          <div className="hdetail">{bookLow
+            ? "needs 10 replies, at " + fmtInt(m.replies)
+            : fmtInt(m.booked) + " of " + fmtInt(m.replies) + " replies · floor " + fmtPct(KPI.bookingRate[0], 0)}</div>
+        </div>
+        <div className="hs-stat">
+          <div className="label">Time to goal</div>
+          <div className="display hs-sv">{timeToGoal}</div>
+          <div className="hdetail">at {fmtInt(calc.capacity)} a day, live rates</div>
+        </div>
+        <div className="hs-stat">
+          <div className="label">All time</div>
+          <div className="display hs-sv"><CountUp value={cm.all} format={fmtEuro} /></div>
+          <div className="hdetail">{fmtEuro(m.dealValue)} signed{cm.source === "payments" ? " · payments tab" : ""}</div>
+        </div>
+      </div>
+    </Reveal>
   );
 }
 
@@ -90,13 +111,15 @@ function Tiles({ daily, replies, m }) {
   const t = (o) => [["this wk", fmtInt(o.cur)], ["last wk", fmtInt(o.prev)]];
   return (
     <div className="tiles">
-      <Tile label="Initials" num={m.initials} format={fmtInt} sub={fmtPct(m.replyRate) + " reply rate"} delta={wow.initials} spark={spark.initials} tip={t(ws.initials)} />
+      {/* Each stage carries its own rate: the rate under a tile is always
+          "how this stage converts from the one before it". */}
+      <Tile label="Initials" num={m.initials} format={fmtInt} sub={fmtInt(m.touches) + " total touches"} delta={wow.initials} spark={spark.initials} tip={t(ws.initials)} />
       <Tile label="Follow ups" num={m.followUps} format={fmtInt} sub={fmtNum(safeDiv(m.followUps, m.initials)) + " per initial"} delta={wow.followUps} spark={spark.followUps} tip={t(ws.followUps)} />
       <Tile label="Comments" num={m.comments} format={fmtInt} sub={fmtPct(m.commentCoverage, 0) + " of initials"} delta={wow.comments} spark={spark.comments} tip={t(ws.comments)} />
-      <Tile label="Replies" num={m.replies} format={fmtInt} sub={fmtPct(m.bookingRate) + " to booked"} delta={wow.replies} spark={spark.replies} tip={t(ws.replies)} />
-      <Tile label="Booked" num={m.booked} format={fmtInt} sub={fmtPct(m.showRate) + " show rate"} delta={wow.booked} spark={spark.booked} tip={t(ws.booked)} />
-      <Tile label="Shown" num={m.shown} format={fmtInt} sub={fmtPct(m.closeRate) + " close rate"} />
-      <Tile label="Closed" num={m.closed} format={fmtInt} red sub={m.avgDeal > 0 ? fmtEuro(m.avgDeal) + " avg deal" : ""} />
+      <Tile label="Replies" num={m.replies} format={fmtInt} sub={fmtPct(m.replyRate) + " reply rate"} delta={wow.replies} spark={spark.replies} tip={t(ws.replies)} />
+      <Tile label="Booked" num={m.booked} format={fmtInt} sub={fmtPct(m.bookingRate) + " booking rate"} delta={wow.booked} spark={spark.booked} tip={t(ws.booked)} />
+      <Tile label="Shown" num={m.shown} format={fmtInt} sub={fmtPct(m.showRate) + " show rate"} />
+      <Tile label="Closed" num={m.closed} format={fmtInt} red sub={fmtPct(m.closeRate) + " close rate" + (m.avgDeal > 0 ? " · " + fmtEuro(m.avgDeal) + " avg" : "")} />
       <Tile label="Cash" num={m.cash} format={fmtEuro} red sub={fmtEuro(m.outstanding) + " outstanding"} delta={wow.cash} spark={spark.cash} tip={t(ws.cash)} />
     </div>
   );

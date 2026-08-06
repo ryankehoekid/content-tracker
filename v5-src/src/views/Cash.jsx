@@ -58,7 +58,7 @@ function CashTrajectory({ daily, replies, payments, m, calc }) {
       <polygon points={cone} fill={C.red} opacity="0.10" />
       <line x1={tX} y1={tY} x2={X(x1)} y2={Y(bands.p50)} stroke={C.red} strokeDasharray="4 5" strokeWidth="1.5" opacity="0.8" />
       {/* actual */}
-      {days.length > 1 && <polyline points={actualPts} fill="none" stroke={C.red} strokeWidth="2.4" strokeLinejoin="round" />}
+      {days.length > 1 && <polyline points={actualPts} fill="none" stroke={C.red} strokeWidth="2.4" strokeLinejoin="round" pathLength="1" className="drawline" />}
       <circle cx={tX} cy={tY} r="3.5" fill={C.red} />
       <text x={tX + 6} y={tY - 8} fontFamily="'Space Mono', monospace" fontSize="9" fill={C.bone}>{fmtEuroK(bands.cashMTD)} today</text>
       {/* month labels */}

@@ -5,70 +5,162 @@ import { displayName, parseReplyHour, TIME_BANDS, meanReplyTime, speedToBook, up
 import { Reveal } from "../ui/atoms.jsx";
 
 const C = { red: "#E11414", bone: "#F4F2ED", steel: "#7A7A7A" };
+const REDUCED = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function FunnelView({ m }) {
+/* The bloodstream: the funnel as a horizontal river. Band thickness is the
+   square-root-scaled survivor count; at each stage boundary the lost share
+   peels off downward and fades. Particles ride the stream live, and the
+   drop-off is something you watch happen instead of a shape you decode. */
+function FlowFunnel({ m }) {
+  const ref = React.useRef(null);
   const stages = [
-    { label: "Initials", value: m.initials },
-    { label: "Replies", value: m.replies, rate: m.replyRate, rateLabel: "reply rate" },
-    { label: "Booked", value: m.booked, rate: m.bookingRate, rateLabel: "booking rate" },
-    { label: "Shown", value: m.shown, rate: m.showRate, rateLabel: "show rate" },
-    { label: "Closed", value: m.closed, rate: m.closeRate, rateLabel: "close rate" },
+    { label: "INITIALS", value: m.initials },
+    { label: "REPLIES", value: m.replies, rate: m.replyRate },
+    { label: "BOOKED", value: m.booked, rate: m.bookingRate },
+    { label: "SHOWN", value: m.shown, rate: m.showRate },
+    { label: "CLOSED", value: m.closed, rate: m.closeRate },
   ];
-  const maxV = Math.max(stages[0].value, 1);
-  const W = 700, H = 380, pad = 10;
-  const widthFor = (v) => Math.max(Math.sqrt(v / maxV) * (W * 0.62), 44);
-  const n = stages.length;
-  const segH = (H - pad * 2) / n;
-  const bw = stages.map((s) => widthFor(s.value));
-  bw.push(bw[n - 1] * 0.72);
-  const fills = ["#414141", "#3A3A3A", "#323232", "#2B2B2B", C.red];
-  const segPath = (i) => {
-    const y0 = pad + i * segH, y1 = y0 + segH;
-    const c = segH * 0.55;
-    const x0l = (W - bw[i]) / 2, x0r = (W + bw[i]) / 2;
-    const x1l = (W - bw[i + 1]) / 2, x1r = (W + bw[i + 1]) / 2;
-    return "M" + x0l + "," + y0
-      + " C" + x0l + "," + (y0 + c) + " " + x1l + "," + (y1 - c) + " " + x1l + "," + y1
-      + " L" + x1r + "," + y1
-      + " C" + x1r + "," + (y1 - c) + " " + x0r + "," + (y0 + c) + " " + x0r + "," + y0 + " Z";
-  };
+  React.useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const W = 760, H = 350, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    const n = stages.length;
+    const padL = 84, padR = 46, cy = 152, maxHH = 104;
+    const xs = stages.map((_, i) => padL + (i * (W - padL - padR)) / (n - 1));
+    const maxV = Math.max(stages[0].value, 1);
+    const hh = stages.map((s) => Math.max(Math.sqrt(s.value / maxV) * maxHH, 4));
+    const pass = stages.slice(1).map((s, i) => stages[i].value > 0 ? s.value / stages[i].value : 0);
+    // half-height along x, linear-in-sqrt between stage anchors
+    const hhAt = (x) => {
+      if (x <= xs[0]) return hh[0];
+      if (x >= xs[n - 1]) return hh[n - 1];
+      let i = 0;
+      while (x > xs[i + 1]) i++;
+      const f = (x - xs[i]) / (xs[i + 1] - xs[i]);
+      const e = f * f * (3 - 2 * f);
+      return hh[i] + (hh[i + 1] - hh[i]) * e;
+    };
+    const hash = (a, b) => {
+      let h = a * 374761393 + b * 668265263;
+      h = (h ^ (h >> 13)) * 1274126177;
+      return ((h ^ (h >> 16)) >>> 0) / 4294967295;
+    };
+    const P = 120;
+    const parts = Array.from({ length: P }, (_, i) => ({
+      i, x: padL + hash(i, 99) * (W - padL - padR), u: hash(i, 7) * 2 - 1,
+      v: 0.55 + hash(i, 13) * 0.75, deadAt: -1, fall: 0,
+    }));
+    const boundaryFor = (p) => {
+      for (let b = 0; b < pass.length; b++) if (hash(p.i, b * 31 + 3) > pass[b]) return b;
+      return -1;
+    };
+    parts.forEach((p) => { p.b = boundaryFor(p); });
+    const river = () => {
+      // lost branches first, behind the stream
+      for (let b = 0; b < pass.length; b++) {
+        const lostFrac = 1 - pass[b];
+        if (lostFrac <= 0.02) continue;
+        const bx = xs[b + 1], bw = Math.max((hh[b] - hh[b + 1]) * 1.0, 2);
+        const g = ctx.createLinearGradient(bx, cy, bx + 30, H);
+        g.addColorStop(0, "rgba(58,58,58,0.5)");
+        g.addColorStop(1, "rgba(58,58,58,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(bx - bw * 0.4, cy + hhAt(bx - bw * 0.4) - 1);
+        ctx.bezierCurveTo(bx + 8, cy + hh[b] + 26, bx + 18, H - 26, bx + 22, H - 6);
+        ctx.lineTo(bx + 40 + bw, H - 6);
+        ctx.bezierCurveTo(bx + 30 + bw, H - 40, bx + bw * 0.8 + 10, cy + hh[b] + 10, bx + bw * 0.6, cy + hhAt(bx + bw * 0.6) - 1);
+        ctx.closePath(); ctx.fill();
+      }
+      // the stream itself
+      const g = ctx.createLinearGradient(padL, 0, W - padR, 0);
+      g.addColorStop(0, "#2E2E2E");
+      g.addColorStop(0.72, "#3A2426");
+      g.addColorStop(1, "#7E0C0C");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(xs[0], cy - hh[0]);
+      for (let x = xs[0]; x <= xs[n - 1]; x += 6) ctx.lineTo(x, cy - hhAt(x));
+      ctx.lineTo(xs[n - 1], cy - hh[n - 1]);
+      ctx.lineTo(xs[n - 1] + 26, cy - hh[n - 1] * 0.55);
+      ctx.lineTo(xs[n - 1] + 26, cy + hh[n - 1] * 0.55);
+      ctx.lineTo(xs[n - 1], cy + hh[n - 1]);
+      for (let x = xs[n - 1]; x >= xs[0]; x -= 6) ctx.lineTo(x, cy + hhAt(x));
+      ctx.closePath(); ctx.fill();
+      // glow at the closed end
+      const eg = ctx.createRadialGradient(xs[n - 1] + 8, cy, 2, xs[n - 1] + 8, cy, 60);
+      eg.addColorStop(0, "rgba(225,20,20,0.35)");
+      eg.addColorStop(1, "rgba(225,20,20,0)");
+      ctx.fillStyle = eg;
+      ctx.beginPath(); ctx.arc(xs[n - 1] + 8, cy, 60, 0, Math.PI * 2); ctx.fill();
+    };
+    const labels = () => {
+      ctx.textAlign = "center";
+      stages.forEach((s, i) => {
+        ctx.fillStyle = "#7A7A7A";
+        ctx.font = "10px 'Space Mono', monospace";
+        ctx.fillText(s.label, xs[i], cy - hh[i] - (i === 0 ? 30 : 14) - (i % 2 === 1 ? 14 : 0));
+        ctx.fillStyle = i === n - 1 ? "#E11414" : "#F4F2ED";
+        ctx.font = "17px 'Archivo Black', sans-serif";
+        ctx.fillText(fmtInt(s.value), xs[i], cy + hh[i] + 26 + (i % 2 === 1 ? 12 : 0));
+        if (s.rate !== undefined) {
+          ctx.fillStyle = "#B9B7B2";
+          ctx.font = "10px 'Space Mono', monospace";
+          ctx.fillText(fmtPct(s.rate), (xs[i] + xs[i - 1]) / 2, cy - Math.max(hhAt((xs[i] + xs[i - 1]) / 2), 10) - 10);
+        }
+        if (i > 0) {
+          const lost = stages[i - 1].value - s.value;
+          if (lost > 0) {
+            ctx.fillStyle = "#4A4A4A";
+            ctx.font = "9px 'Space Mono', monospace";
+            ctx.fillText("-" + fmtInt(lost), xs[i] + 30, H - 12);
+          }
+        }
+      });
+    };
+    let raf = null;
+    const frame = () => {
+      ctx.clearRect(0, 0, W, H);
+      river();
+      // particles
+      for (const p of parts) {
+        p.x += p.v * (REDUCED ? 0 : 1.1);
+        const bx = p.b >= 0 ? xs[p.b + 1] : Infinity;
+        let y, alpha = 0.75;
+        if (p.x > bx) {
+          p.fall += 0.045;
+          y = cy + hhAt(bx) * p.u * 0.8 + (p.x - bx) * (0.9 + p.fall);
+          alpha = Math.max(0.55 - (p.x - bx) / 90, 0);
+          ctx.fillStyle = "rgba(122,122,122," + alpha.toFixed(2) + ")";
+        } else {
+          y = cy + hhAt(p.x) * p.u * 0.8;
+          const t = (p.x - padL) / (W - padL - padR);
+          ctx.fillStyle = "rgba(" + (t > 0.7 ? "255,90,60" : "200,160,150") + "," + alpha.toFixed(2) + ")";
+        }
+        if (p.x > W - padR + 24 || y > H || alpha <= 0) {
+          p.x = padL; p.u = Math.random() * 2 - 1; p.fall = 0;
+          p.i = (p.i + P) % 100000; p.b = boundaryFor(p);
+        }
+        ctx.beginPath(); ctx.arc(p.x, y, 1.4, 0, Math.PI * 2); ctx.fill();
+      }
+      labels();
+    };
+    const start = () => {
+      if (REDUCED) { frame(); return; }
+      const loop = () => { frame(); raf = requestAnimationFrame(loop); };
+      loop();
+    };
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(start);
+    else start();
+    return () => { if (raf) cancelAnimationFrame(raf); };
+  }, [m.initials, m.replies, m.booked, m.shown, m.closed]);
   return (
     <div>
-      <svg viewBox={"0 0 " + W + " " + H} width="100%" style={{ display: "block" }}>
-        <defs>
-          <filter id="redglow" x="-40%" y="-40%" width="180%" height="180%">
-            <feDropShadow dx="0" dy="0" stdDeviation="7" floodColor={C.red} floodOpacity="0.45" />
-          </filter>
-        </defs>
-        {stages.map((s, i) => {
-          const drop = i > 0 ? stages[i - 1].value - s.value : null;
-          const yMid = pad + i * segH + segH / 2;
-          return (
-            <g key={s.label}>
-              <path d={segPath(i)} fill={fills[i]} stroke="#0A0A0A" strokeWidth="2"
-                filter={i === n - 1 ? "url(#redglow)" : undefined}>
-                <title>{s.label + ": " + fmtInt(s.value)
-                  + (s.rate !== undefined ? " · " + fmtPct(s.rate) + " " + s.rateLabel : "")
-                  + (drop !== null ? " · " + fmtInt(drop) + " did not make it" : "")}</title>
-              </path>
-              <text x={W / 2} y={yMid + 6} textAnchor="middle"
-                fontFamily="'Archivo Black', sans-serif" fontSize="19" fill={C.bone}
-                style={{ pointerEvents: "none" }}>{fmtInt(s.value)}</text>
-              <text x={0} y={yMid + 3} fontFamily="'Space Mono', monospace" fontSize="11"
-                letterSpacing="1.5" fill={C.steel}>{s.label.toUpperCase()}</text>
-              {s.rate !== undefined && (
-                <text x={W} y={yMid - 4} textAnchor="end" fontFamily="'Space Mono', monospace"
-                  fontSize="11" fill={C.bone}>{fmtPct(s.rate)}</text>
-              )}
-              {drop !== null && (
-                <text x={W} y={yMid + 11} textAnchor="end" fontFamily="'Space Mono', monospace"
-                  fontSize="9" fill={C.steel}>{"-" + fmtInt(drop) + " lost"}</text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
-      <div className="note">Widths on a square root scale so late stages stay visible. Hover a stage for detail. The counts and rates are exact.</div>
+      <canvas ref={ref} style={{ width: "100%", display: "block" }} aria-label="funnel flow" />
+      <div className="note">Every dot is volume moving through the funnel; the gray fallout at each boundary is the drop-off, drawn to scale on a square root height. Counts and rates are exact.</div>
     </div>
   );
 }
@@ -79,12 +171,19 @@ function Gauge({ label, value, floor, strong, sample, sampleNeed, sampleUnit }) 
   const frac = Math.max(0.005, Math.min(value / strong, 1));
   const tickAngle = Math.min(floor / strong, 1) * 360;
   const col = low ? "#3A3A3A" : value >= floor ? C.red : "#C9A227";
+  // Sweep in from zero on mount.
+  const [on, setOn] = React.useState(REDUCED);
+  React.useEffect(() => {
+    const r = requestAnimationFrame(() => setOn(true));
+    return () => cancelAnimationFrame(r);
+  }, []);
   return (
     <div className="gauge">
       <svg viewBox="0 0 100 100">
         <circle cx="50" cy="50" r={R} fill="none" stroke="#1E1E1E" strokeWidth="8" />
         <circle cx="50" cy="50" r={R} fill="none" stroke={col} strokeWidth="8"
-          strokeDasharray={frac * CIRC + " " + CIRC} strokeLinecap="round"
+          strokeDasharray={(on ? frac : 0.005) * CIRC + " " + CIRC} strokeLinecap="round"
+          style={{ transition: "stroke-dasharray 1.1s cubic-bezier(0.22,1,0.36,1)" }}
           transform="rotate(-90 50 50)" />
         <line x1="50" y1="4" x2="50" y2="13" stroke={C.bone} strokeWidth="2"
           transform={"rotate(" + tickAngle + " 50 50)"} opacity="0.75" />
@@ -101,41 +200,82 @@ function Gauge({ label, value, floor, strong, sample, sampleNeed, sampleUnit }) 
   );
 }
 
+/* The pipeline as a work-order: grouped by what deserves attention now,
+   filterable, each lead carrying its stage progress at a glance. */
 function PipelineList({ replies }) {
-  const rows = [...replies].sort((a, b) => b.date - a.date);
-  const stage = (r) => (r.dead ? "dead" : r.closed ? "closed" : r.showed ? "shown" : r.booked ? "booked" : r.status.toLowerCase() === "talking" ? "talking" : "replied");
+  const [filter, setFilter] = React.useState("all");
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const ageOf = (r) => Math.max(0, Math.round((today - r.date) / DAY_MS));
-  const ageClass = (r) => {
-    if (stage(r) !== "replied") return "";
-    const a = ageOf(r);
-    return a > 7 ? " stale" : a >= 2 ? " aging" : "";
+  const catOf = (r) => {
+    if (r.dead) return "dead";
+    if (r.closed) return "won";
+    if (r.booked || r.showed || ["talking", "waiting"].includes(r.status.toLowerCase())) return "working";
+    return ageOf(r) > 7 ? "stale" : "live";
   };
+  const rows = [...replies].sort((a, b) => b.date - a.date);
+  const cats = { live: [], stale: [], working: [], won: [], dead: [] };
+  rows.forEach((r) => cats[catOf(r)].push(r));
+  const GROUPS = [
+    ["live", "Live, work these now"],
+    ["stale", "Stale, rescue or kill"],
+    ["working", "In play"],
+    ["won", "Won"],
+    ["dead", "Dead"],
+  ];
+  const FILTERS = [["all", "All"], ...GROUPS.map(([k]) => [k, k])];
+  const Row = ({ r }) => {
+    const cat = catOf(r);
+    const a = ageOf(r);
+    const fresh = cat === "live" && a <= 1;
+    const name = displayName(r);
+    const prog = [true, r.booked, r.showed, r.closed];
+    return (
+      <div className={"pl-row" + (r.dead ? " is-dead" : "") + (fresh ? " is-fresh" : "")}>
+        <span className={"pl-mono " + cat}>{(name.replace(/^@/, "")[0] || "?").toUpperCase()}</span>
+        <span className="pl-name" title={r.handle}>
+          {name}
+          <span className="pl-sub">
+            {shortDate(r.date)}{r.timeReplied ? " · " + r.timeReplied : ""}
+            {r.account ? " · " + r.account.toLowerCase() : ""}
+            {r.dead && r.deadReason ? " · " + r.deadReason.toLowerCase() : ""}
+            {r.callDate && !r.showed && !r.closed && !r.dead ? " · call " + shortDate(r.callDate) : ""}
+          </span>
+        </span>
+        {r.closed && r.cash > 0 ? (
+          <span className="pipe-money">{fmtEuro(r.cash)}{r.dealValue > r.cash ? " of " + fmtEuro(r.dealValue) : ""}</span>
+        ) : !r.dead && !r.closed ? (
+          <span className={"age" + (cat === "stale" ? " stale" : a >= 2 ? " aging" : "")}>{a}d</span>
+        ) : <span />}
+        <span className="pl-dots" title="replied / booked / shown / closed">
+          {prog.map((on, i) => <i key={i} className={"sd" + (on ? " on" : "") + (r.dead ? " x" : "")} />)}
+        </span>
+      </div>
+    );
+  };
+  const shown = filter === "all" ? null : cats[filter];
   return (
     <div className="card">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
         <h2 className="sec" style={{ margin: 0 }}>Pipeline</h2>
-        <span className="label">{rows.length} {rows.length === 1 ? "reply" : "replies"}</span>
+        <div className="ptabs" style={{ margin: 0 }}>
+          {FILTERS.map(([k, label]) => (
+            <button key={k} className={"btn sm" + (filter === k ? " active" : "")} onClick={() => setFilter(k)}>
+              {label}{k !== "all" && cats[k].length ? " " + cats[k].length : ""}
+            </button>
+          ))}
+        </div>
       </div>
       {rows.length === 0 && <div className="note">No replies in this window yet.</div>}
       <div className="pipe-scroll">
-        {rows.map((r, i) => (
-          <div className={"pipe-row" + (r.dead ? " is-dead" : "")} key={i}>
-            <span className="pipe-name">{displayName(r)}</span>
-            {!r.closed && !r.dead && <span className={"age" + ageClass(r)} title={"replied " + ageOf(r) + " days ago"}>{ageOf(r)}d</span>}
-            {r.account && <span className="age" title="account">{r.account.replace(/^Acc /i, "A")}</span>}
-            <span className={"chip " + stage(r)} title={r.dead && r.deadReason ? r.deadReason : undefined}>
-              {r.dead && r.deadReason ? "dead · " + r.deadReason.toLowerCase() : stage(r)}
-            </span>
-            {r.closed && r.cash > 0 && (
-              <span className="pipe-money">
-                {fmtEuro(r.cash)}{r.dealValue > r.cash ? " of " + fmtEuro(r.dealValue) : ""}{r.paymentPlan ? " · plan" : ""}
-              </span>
-            )}
-            <span className="pipe-date">{shortDate(r.date)}{r.timeReplied ? " · " + r.timeReplied : ""}</span>
-          </div>
-        ))}
+        {shown
+          ? shown.map((r, i) => <Row r={r} key={i} />)
+          : GROUPS.map(([k, title]) => cats[k].length > 0 && (
+              <div key={k}>
+                <div className={"pl-group pg-" + k}><span>{title}</span><b>{cats[k].length}</b></div>
+                {cats[k].map((r, i) => <Row r={r} key={i} />)}
+              </div>
+            ))}
       </div>
     </div>
   );
@@ -293,7 +433,7 @@ export default function Pipeline({ daily, replies, leads, m }) {
       <div className="two-col">
         <Reveal className="card">
           <h2 className="sec">Funnel, all time</h2>
-          <FunnelView m={m} />
+          <FlowFunnel m={m} />
         </Reveal>
         <div className="grid">
           <Reveal delay={60}>
