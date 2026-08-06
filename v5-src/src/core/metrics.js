@@ -189,6 +189,20 @@ export function computeFindings(daily, replies, capacity, m) {
   return { findings, waiting };
 }
 
+/* Lead scheduler standby: the sheet is intentionally parked until accounts
+   2 and 3 land (Ryan doctrine, 2026-08-06). When every active lead is
+   overdue and nothing has moved in days, the queue is not a failure, it is
+   on standby; it re-arms automatically the day the dates move again. */
+export function leadsStandby(leads) {
+  const active = leads.filter((l) => l.nextDue && l.status.toLowerCase() !== "replied");
+  if (!active.length) return false;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const newest = Math.max(...active.map((l) => l.nextDue.getTime()));
+  const overdue = active.filter((l) => l.nextDue < today).length;
+  return overdue === active.length && newest < today.getTime() - 3 * DAY_MS;
+}
+
 /* Lever wheel pricing: every controllable lever in euros of monthly cash from
    the live funnel. Levers overlap, so they are never summed. */
 export function computeLevers(daily, replies, leads, m, calc) {
@@ -233,7 +247,8 @@ export function computeLevers(daily, replies, leads, m, calc) {
       detail: s.stale + " replies past 7 days unbooked.",
       basis: "hypothesis" });
   }
-  const overdue = leads.filter((l) => l.nextDue && l.status.toLowerCase() !== "replied" && l.nextDue < today).length;
+  const overdue = leadsStandby(leads) ? 0
+    : leads.filter((l) => l.nextDue && l.status.toLowerCase() !== "replied" && l.nextDue < today).length;
   if (overdue > 0) {
     L.push({ name: "Clear the overdue queue", per: "one time",
       value: overdue * rr * br * sr * cr * aov,
@@ -570,9 +585,10 @@ export function computeAnomalies(daily, replies, leads, capacity) {
     out.push({ sev: "a", text: "Comments at " + fmtInt(safeDiv(last.comments, last.initials) * 100) + "% of initials on the latest day" });
   }
 
-  // Lead sheet staleness vs EOD activity
+  // Lead sheet staleness vs EOD activity. Fully-parked sheet is standby
+  // (waiting on the account fleet), not a failure.
   const activeLeads = leads.filter((l) => l.nextDue && l.status.toLowerCase() !== "replied");
-  if (activeLeads.length > 5) {
+  if (activeLeads.length > 5 && !leadsStandby(leads)) {
     const overdue = activeLeads.filter((l) => l.nextDue < today).length;
     if (overdue > activeLeads.length * 0.8) {
       out.push({ sev: "a", text: "Lead sheet: " + overdue + " of " + activeLeads.length + " overdue. Sheet stale or queue slipping" });
