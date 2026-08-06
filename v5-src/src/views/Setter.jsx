@@ -45,6 +45,60 @@ function FieldLog({ daily, replies, capacity }) {
   );
 }
 
+/* Consistency calendar: 16 weeks of working days (Mon to Sat), colored by
+   initials vs capacity. Unlogged working days inside the tracking window
+   show as misses. Consistency becomes something you can see. */
+function Heatmap({ daily, capacity }) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const byDay = new Map(daily.map((r) => [dayKey(r.date), r]));
+  const firstLogged = daily.length ? daily[0].date : null;
+  const dow = (today.getDay() + 6) % 7; // 0 = Monday
+  const thisMon = new Date(today.getTime() - dow * DAY_MS);
+  const weeks = [];
+  for (let w = 15; w >= 0; w--) {
+    const col = [];
+    for (let d = 0; d < 6; d++) { // Mon..Sat
+      const dt = new Date(thisMon.getTime() - w * 7 * DAY_MS + d * DAY_MS);
+      col.push(dt > today ? null : dt);
+    }
+    weeks.push(col);
+  }
+  const cell = (dt) => {
+    if (!dt) return { bg: "transparent", title: "" };
+    const row = byDay.get(dayKey(dt));
+    const inWindow = firstLogged && dt >= firstLogged;
+    if (!row) {
+      return inWindow
+        ? { bg: "#241A08", title: shortDate(dt) + ": not logged", miss: true }
+        : { bg: "#141414", title: shortDate(dt) };
+    }
+    const ratio = capacity > 0 ? Math.min(row.initials / capacity, 1) : 0;
+    const a = 0.16 + 0.84 * ratio;
+    return { bg: "rgba(225,20,20," + a.toFixed(2) + ")",
+      title: shortDate(dt) + ": " + fmtInt(row.initials) + " initials, " + fmtInt(row.followUps) + " follow ups" };
+  };
+  return (
+    <div className="card">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
+        <h2 className="sec" style={{ margin: 0 }}>Consistency, 16 weeks</h2>
+        <span className="label">color = initials vs {fmtInt(capacity)}</span>
+      </div>
+      <div className="hmap" style={{ marginTop: 12 }}>
+        {weeks.map((col, i) => (
+          <div className="hmap-col" key={i}>
+            {col.map((dt, j) => {
+              const c = cell(dt);
+              return <span key={j} className={"hmap-cell" + (c.miss ? " miss" : "")} style={{ background: c.bg }} title={c.title} />;
+            })}
+          </div>
+        ))}
+      </div>
+      <div className="note">Mondays on top, Saturdays on the bottom, Sundays off. Amber cells are working days inside the tracking window with no EOD row.</div>
+    </div>
+  );
+}
+
 function DayScore({ daily, capacity }) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -92,15 +146,18 @@ export default function Setter({ daily, replies, calc }) {
   return (
     <div className="grid">
       <div className="two-col">
-        <Reveal className="card">
-          <h2 className="sec">Daily Output</h2>
-          <LineChart series={series} height={240} />
-          <div className="legend">
-            <span className="leg"><i style={{ background: C.red }} />initials</span>
-            <span className="leg"><i style={{ background: C.teal }} />comments</span>
-            <span className="leg"><i style={{ background: C.steel }} />follow ups</span>
-          </div>
-        </Reveal>
+        <div className="grid">
+          <Reveal className="card">
+            <h2 className="sec">Daily Output</h2>
+            <LineChart series={series} height={240} />
+            <div className="legend">
+              <span className="leg"><i style={{ background: C.red }} />initials</span>
+              <span className="leg"><i style={{ background: C.teal }} />comments</span>
+              <span className="leg"><i style={{ background: C.steel }} />follow ups</span>
+            </div>
+          </Reveal>
+          <Reveal delay={40}><Heatmap daily={daily} capacity={calc.capacity} /></Reveal>
+        </div>
         <div className="grid">
           <Reveal delay={60}><DayScore daily={daily} capacity={calc.capacity} /></Reveal>
           <Reveal delay={120}>

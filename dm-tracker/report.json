@@ -1,0 +1,14 @@
+{
+  "week": "Jul 31 - Aug 6",
+  "date": "2026-08-06",
+  "headline": "Volume held near 70 a day and the replies came in threes by week's end. Eleven conversations open, one booked. Booking is the number to break next week.",
+  "stats": [
+    { "label": "Initials sent", "value": "402", "sub": "this week" },
+    { "label": "Follow ups", "value": "2,491", "sub": "this week" },
+    { "label": "Replies", "value": "8", "sub": "3 landed on the last day" },
+    { "label": "Booked", "value": "0", "sub": "1 all time of 11 replies", "red": true },
+    { "label": "Cash collected", "value": "EUR 0", "sub": "goal EUR 30,000", "red": true },
+    { "label": "Log streak", "value": "12d", "sub": "every day since day one" }
+  ],
+  "footline": "All time: reply rate <b>1.5%</b> on 713 sends &middot; booking rate <b>9.1%</b> &middot; comments at <b>96%</b> of initials"
+}

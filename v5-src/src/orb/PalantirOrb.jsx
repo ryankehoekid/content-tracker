@@ -19,6 +19,7 @@ precision highp float;
 varying vec2 vUv;
 uniform float uTime;
 uniform float uAgitation;
+uniform float uFlare;
 uniform vec2 uTilt;
 
 // hash + 3D value noise + fbm
@@ -94,8 +95,8 @@ void main() {
       fire += dens * 0.16;
       hot += smoothstep(0.62, 0.98, n) * core * core * core * 0.22;
     }
-    fire *= 0.75 + uAgitation * 0.7;
-    hot *= 0.75 + uAgitation * 0.9;
+    fire *= (0.75 + uAgitation * 0.7) * (1.0 + uFlare * 1.4);
+    hot *= (0.75 + uAgitation * 0.9) * (1.0 + uFlare * 1.8);
     // flicker under high agitation
     if (uAgitation > 0.7) {
       float fl = 0.9 + 0.1 * sin(uTime * 21.0) * sin(uTime * 13.7);
@@ -117,7 +118,7 @@ void main() {
 
     // fresnel rim
     float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-    vec3 rim = vec3(0.9, 0.12, 0.08) * fres * (0.35 + uAgitation * 0.25);
+    vec3 rim = vec3(0.9, 0.12, 0.08) * fres * (0.35 + uAgitation * 0.25 + uFlare * 0.5);
     // cold rim on the upper left
     float cold = fres * max(dot(normalize(N.xy), normalize(vec2(-0.7, 0.75))), 0.0);
     rim += vec3(0.9, 0.88, 0.85) * cold * 0.18;
@@ -142,7 +143,7 @@ void main() {
 }
 `;
 
-export default function PalantirOrb({ agitation = 0.3 }) {
+export default function PalantirOrb({ agitation = 0.3, flare = 0 }) {
   const mountRef = useRef(null);
   const uniformsRef = useRef(null);
 
@@ -165,6 +166,7 @@ export default function PalantirOrb({ agitation = 0.3 }) {
     const uniforms = {
       uTime: { value: Math.random() * 40 },
       uAgitation: { value: agitation },
+      uFlare: { value: 0 },
       uTilt: { value: new THREE.Vector2(0, 0) },
     };
     uniformsRef.current = uniforms;
@@ -192,6 +194,7 @@ export default function PalantirOrb({ agitation = 0.3 }) {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       uniforms.uTime.value += dt;
+      uniforms.uFlare.value *= Math.pow(0.25, dt); // the surge dies over ~2s
       uniforms.uTilt.value.lerp(tiltTarget, 0.04);
       renderer.render(scene, camera);
     };
@@ -220,6 +223,10 @@ export default function PalantirOrb({ agitation = 0.3 }) {
   useEffect(() => {
     if (uniformsRef.current) uniformsRef.current.uAgitation.value = agitation;
   }, [agitation]);
+  // fresh data arrived with moved numbers: the stone surges
+  useEffect(() => {
+    if (flare && uniformsRef.current) uniformsRef.current.uFlare.value = 1;
+  }, [flare]);
 
   return <div ref={mountRef} className="orb-gl" style={{ position: "absolute", inset: 0 }} aria-hidden="true" />;
 }
