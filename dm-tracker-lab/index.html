@@ -1478,9 +1478,10 @@ function computeLevers(daily, replies, leads, m, calc) {
   }
   return L.filter((l) => l.value > 0.5).sort((a, b) => b.value - a.value).slice(0, 6);
 }
-// The orb: a living plasma core rendered on canvas, breathing glow, drifting
-// filaments, ember sparks, a slow scan ring. Pure code, no assets. The lever
-// arcs orbit it as a thin data ring; the top lever floats in the core.
+// The orb: a palantir seeing-stone rendered on canvas. A dark glass sphere
+// with fire swirling inside it: limb-darkened shading toward the edge, an
+// off-center specular highlight, smoke wisps and embers in the glass, a
+// seat of red light beneath. Agitation turns the drift into a storm.
 function Orb({ agitation }) {
   const ref = React.useRef(null);
   useEffect(() => {
@@ -1490,57 +1491,113 @@ function Orb({ agitation }) {
     canvas.width = S * dpr; canvas.height = S * dpr;
     const ctx = canvas.getContext("2d");
     ctx.scale(dpr, dpr);
-    const cx = S / 2, cy = S / 2;
-    const sparks = Array.from({ length: 30 }, () => ({
-      a: Math.random() * Math.PI * 2,
-      v: 0.5 + Math.random(),
-      s: 0.6 + Math.random() * 1.3,
+    const cx = S / 2, cy = S / 2, R = 138;
+    const TAU = Math.PI * 2;
+    const ag = typeof agitation === "number" ? agitation : 0.3;
+    const wisps = Array.from({ length: 7 }, (_, i) => ({
+      a: (i / 7) * TAU + Math.random() * 0.8,
+      w: (0.10 + Math.random() * 0.14) * (i % 2 ? 1 : -1),
+      r: 0.18 + Math.random() * 0.5,
+      z: 0.55 + Math.random() * 0.45,
+      s: 26 + Math.random() * 26,
+    }));
+    const embers = Array.from({ length: 22 }, () => ({
+      x: (Math.random() * 2 - 1) * 0.8,
       p: Math.random(),
+      v: 0.5 + Math.random(),
+      s: 0.5 + Math.random() * 1.1,
+      d: Math.random() * TAU,
     }));
     let raf = null, t = Math.random() * 10;
-    const ag = typeof agitation === "number" ? agitation : 0.3;
-    const TAU = Math.PI * 2;
     const frame = () => {
       t += 0.016;
       ctx.clearRect(0, 0, S, S);
+      const storm = 1 + ag * 1.6;
       ctx.globalCompositeOperation = "lighter";
-      const breathe = Math.sin(t * (1.1 + ag * 1.4)) * (3 + ag * 3) + Math.sin(t * 0.47) * 2;
-      let g = ctx.createRadialGradient(cx, cy, 10, cx, cy, 150);
-      g.addColorStop(0, "rgba(225,20,20,0.26)");
-      g.addColorStop(0.55, "rgba(225,20,20,0.06)");
+      let g = ctx.createRadialGradient(cx, cy + R * 0.94, 4, cx, cy + R * 0.94, R * 0.85);
+      g.addColorStop(0, "rgba(225,20,20," + (0.20 + ag * 0.10).toFixed(2) + ")");
       g.addColorStop(1, "rgba(225,20,20,0)");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 150, 0, TAU); ctx.fill();
-      g = ctx.createRadialGradient(cx, cy, 2, cx, cy, 58 + breathe);
-      g.addColorStop(0, "rgba(255,120,100," + (0.95 - (ag > 0.7 ? Math.abs(Math.sin(t * 27)) * 0.22 : 0)).toFixed(2) + ")");
-      g.addColorStop(0.35, "rgba(225,20,20,0.5)");
+      ctx.save();
+      ctx.translate(cx, cy + R * 0.94);
+      ctx.scale(1, 0.30);
+      ctx.translate(-cx, -(cy + R * 0.94));
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(cx, cy + R * 0.94, R * 0.85, 0, TAU); ctx.fill();
+      ctx.restore();
+      g = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.16);
+      g.addColorStop(0, "rgba(225,20,20," + (0.10 + ag * 0.08).toFixed(2) + ")");
       g.addColorStop(1, "rgba(225,20,20,0)");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 58 + breathe, 0, TAU); ctx.fill();
-      g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 15);
-      g.addColorStop(0, "rgba(255,238,230,0.55)");
-      g.addColorStop(1, "rgba(255,120,100,0)");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 15, 0, TAU); ctx.fill();
-      for (let i = 0; i < 3; i++) {
-        const a = t * (0.35 + i * 0.16) + i * 2.1;
-        const bx = cx + Math.cos(a) * (17 + 6 * Math.sin(t * 0.7 + i));
-        const by = cy + Math.sin(a * 1.3) * (15 + 5 * Math.cos(t * 0.9 + i));
-        g = ctx.createRadialGradient(bx, by, 1, bx, by, 32);
-        g.addColorStop(0, "rgba(255,60,40,0.45)");
-        g.addColorStop(1, "rgba(255,60,40,0)");
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, 32, 0, TAU); ctx.fill();
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 1.16, 0, TAU); ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      g = ctx.createRadialGradient(cx - R * 0.38, cy - R * 0.42, R * 0.08, cx, cy, R);
+      g.addColorStop(0, "#231418");
+      g.addColorStop(0.55, "#120a0c");
+      g.addColorStop(1, "#020202");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill();
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx, cy, R - 1, 0, TAU); ctx.clip();
+      ctx.globalCompositeOperation = "lighter";
+      const breathe = Math.sin(t * (0.9 + ag * 1.5)) * (4 + ag * 5) + Math.sin(t * 0.43) * 3;
+      const coreR = R * 0.42 + breathe;
+      const flick = ag > 0.7 ? Math.abs(Math.sin(t * 23)) * 0.20 : 0;
+      g = ctx.createRadialGradient(cx, cy + R * 0.06, 2, cx, cy + R * 0.06, coreR);
+      g.addColorStop(0, "rgba(255,150,120," + (0.85 - flick).toFixed(2) + ")");
+      g.addColorStop(0.4, "rgba(225,20,20,0.40)");
+      g.addColorStop(1, "rgba(225,20,20,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy + R * 0.06, coreR, 0, TAU); ctx.fill();
+      g = ctx.createRadialGradient(cx, cy + R * 0.05, 0, cx, cy + R * 0.05, R * 0.11);
+      g.addColorStop(0, "rgba(255,240,232," + (0.50 - flick * 0.6).toFixed(2) + ")");
+      g.addColorStop(1, "rgba(255,150,120,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy + R * 0.05, R * 0.11, 0, TAU); ctx.fill();
+      for (const wsp of wisps) {
+        const a = wsp.a + t * wsp.w * storm;
+        const rr = R * wsp.r + Math.sin(t * 0.6 + wsp.a * 3) * R * 0.07;
+        const wx = cx + Math.cos(a) * rr;
+        const wy = cy + Math.sin(a) * rr * wsp.z;
+        const alpha = 0.10 + 0.16 * ((Math.sin(a) * wsp.z + 1) / 2) + ag * 0.06;
+        g = ctx.createRadialGradient(wx, wy, 1, wx, wy, wsp.s);
+        g.addColorStop(0, "rgba(255,60,40," + alpha.toFixed(2) + ")");
+        g.addColorStop(0.6, "rgba(190,20,20," + (alpha * 0.5).toFixed(2) + ")");
+        g.addColorStop(1, "rgba(190,20,20,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(wx, wy, wsp.s, 0, TAU); ctx.fill();
       }
-      for (const s of sparks) {
-        s.p += (0.004 + 0.01 * ag) * s.v;
-        if (s.p > 1) { s.p = 0; s.a = Math.random() * TAU; }
-        const rr = 62 + s.p * 58;
-        const sx = cx + Math.cos(s.a + t * 0.12) * rr;
-        const sy = cy + Math.sin(s.a + t * 0.12) * rr;
-        ctx.fillStyle = "rgba(255,90,70," + ((1 - s.p) * 0.45).toFixed(2) + ")";
-        ctx.beginPath(); ctx.arc(sx, sy, s.s, 0, TAU); ctx.fill();
+      for (const e of embers) {
+        e.p += (0.0022 + 0.006 * ag) * e.v;
+        if (e.p > 1) { e.p = 0; e.x = (Math.random() * 2 - 1) * 0.8; e.d = Math.random() * TAU; }
+        const ex = cx + e.x * R * 0.8 + Math.sin(t * 1.3 + e.d) * 7;
+        const ey = cy + R * 0.75 - e.p * R * 1.5;
+        const fade = Math.sin(e.p * Math.PI);
+        ctx.fillStyle = "rgba(255,110,80," + (fade * 0.5).toFixed(2) + ")";
+        ctx.beginPath(); ctx.arc(ex, ey, e.s, 0, TAU); ctx.fill();
       }
       ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = "rgba(244,242,237,0.10)";
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(cx, cy, 80 + Math.sin(t) * 1.5, t * 0.55, t * 0.55 + 1.2); ctx.stroke();
+      g = ctx.createRadialGradient(cx, cy, R * 0.55, cx, cy, R);
+      g.addColorStop(0, "rgba(2,2,2,0)");
+      g.addColorStop(0.75, "rgba(2,2,2,0.45)");
+      g.addColorStop(1, "rgba(2,2,2,0.92)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill();
+      ctx.globalCompositeOperation = "lighter";
+      g = ctx.createRadialGradient(cx - R * 0.42, cy - R * 0.48, 2, cx - R * 0.42, cy - R * 0.48, R * 0.62);
+      g.addColorStop(0, "rgba(255,246,240,0.13)");
+      g.addColorStop(0.5, "rgba(255,246,240,0.045)");
+      g.addColorStop(1, "rgba(255,246,240,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx - R * 0.42, cy - R * 0.48, R * 0.62, 0, TAU); ctx.fill();
+      ctx.save();
+      ctx.translate(cx - R * 0.40, cy - R * 0.47);
+      ctx.rotate(-0.6);
+      ctx.scale(1, 0.55);
+      g = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.16);
+      g.addColorStop(0, "rgba(255,252,248,0.55)");
+      g.addColorStop(1, "rgba(255,252,248,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R * 0.16, 0, TAU); ctx.fill();
+      ctx.restore();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(244,242,237,0.14)";
+      ctx.beginPath(); ctx.arc(cx, cy, R - 2.5, Math.PI * 1.05, Math.PI * 1.55); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,90,60," + (0.20 + ag * 0.15).toFixed(2) + ")";
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx, cy, R - 3, Math.PI * 0.12, Math.PI * 0.62); ctx.stroke();
+      ctx.restore();
     };
     if (REDUCED_MOTION) { t = 2.4; frame(); }
     else { const loop = () => { frame(); raf = requestAnimationFrame(loop); }; loop(); }
@@ -1550,43 +1607,14 @@ function Orb({ agitation }) {
 }
 function LeverWheel({ levers, agitation }) {
   if (!levers.length) return null;
-  const total = levers.reduce((s, l) => s + l.value, 0);
-  const max = levers[0].value;
-  const CX = 100, CY = 100, RO = 97, RI = 84, GAP = 4;
-  const rad = (a) => (a * Math.PI) / 180;
-  const pt = (r, a) => (CX + r * Math.cos(rad(a))).toFixed(2) + "," + (CY + r * Math.sin(rad(a))).toFixed(2);
-  let angle = -90;
-  const free = 360 - GAP * levers.length;
+  const top = levers[0];
   return (
     <div className="orb-stage">
       <Orb agitation={agitation} />
-      <svg viewBox="0 0 200 200" className="wheel wheel-abs">
-        <defs>
-          <filter id="segglow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="0" stdDeviation="3.5" floodColor={C.red} floodOpacity="0.6" />
-          </filter>
-        </defs>
-        {levers.map((l, i) => {
-          const sweep = (l.value / total) * free;
-          const a0 = angle, a1 = angle + sweep;
-          angle = a1 + GAP;
-          const large = sweep > 180 ? 1 : 0;
-          const d = "M" + pt(RO, a0) + " A" + RO + " " + RO + " 0 " + large + " 1 " + pt(RO, a1)
-            + " L" + pt(RI, a1) + " A" + RI + " " + RI + " 0 " + large + " 0 " + pt(RI, a0) + " Z";
-          return (
-            <path key={i} d={d} className="wseg"
-              fill={"rgba(225,20,20," + (0.22 + 0.7 * (l.value / max)).toFixed(2) + ")"}
-              stroke="#0A0A0A" strokeWidth="1.5"
-              filter={i === 0 ? "url(#segglow)" : undefined}>
-              <title>{l.name + ": " + fmtEuroK(l.value) + (l.per === "mo" ? " a month" : " one time") + " (" + l.basis + ")"}</title>
-            </path>
-          );
-        })}
-      </svg>
       <div className="orb-text">
-        <div className="display ov">{fmtEuroK(levers[0].value)}</div>
-        <div className="mono ol">{levers[0].per === "mo" ? "per month · top lever" : "one time · top lever"}</div>
-        <div className="mono on">{levers[0].name}</div>
+        <div className="display ov">{fmtEuroK(top.value)}</div>
+        <div className="mono ol">{top.per === "mo" ? "per month · top lever" : "one time · top lever"}</div>
+        <div className="mono on">{top.name}</div>
       </div>
     </div>
   );
