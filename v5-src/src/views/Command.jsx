@@ -18,8 +18,8 @@ function Hero({ daily, replies, payments, m, calc }) {
   const now = new Date();
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const monthFrac = now.getDate() / monthEnd;
-  const rr = m.replyRate > 0 ? m.replyRate : FALLBACK_REPLY_RATE;
-  const br = m.bookingRate > 0 ? m.bookingRate : FALLBACK_BOOKING_RATE;
+  const rr = calc.replyRate != null ? calc.replyRate : m.replyRate > 0 ? m.replyRate : FALLBACK_REPLY_RATE;
+  const br = calc.bookingRate != null ? calc.bookingRate : m.bookingRate > 0 ? m.bookingRate : FALLBACK_BOOKING_RATE;
   const initialsNeeded = safeDiv(safeDiv(safeDiv(safeDiv(safeDiv(calc.goal, calc.aov), calc.closeRate), calc.showRate), br), rr);
   const weeks = safeDiv(safeDiv(initialsNeeded, calc.capacity), calc.sendDays / 4.345);
   const timeToGoal = !(calc.capacity > 0) ? "set capacity"

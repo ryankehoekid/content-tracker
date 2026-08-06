@@ -444,3 +444,4 @@ select.ask-input { appearance: none; }
 @media (prefers-reduced-motion: reduce) { .card::after { display: none; } }
 
 .call-score { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--red); float: right; }
+.badge-btn { background: none; border: 0; padding: 0; cursor: pointer; }
