@@ -2704,7 +2704,7 @@ function App() {
           sub={<span><b>{fmtPct(m.replyRate)}</b> reply rate</span>} />
         <Tile label="Calls booked" num={m.booked} format={fmtInt} delta={wow.booked} spark={sparks.booked}
           tip={[["this wk", fmtInt(wsums.booked.cur)], ["last wk", fmtInt(wsums.booked.prev)], ["all time", fmtInt(mAll.booked)]]}
-          sub={<span><b>{fmtPct(m.bookingRate)}</b> of replies</span>} />
+          sub={<span><b>{fmtPct(m.bookingRate)}</b> booking rate</span>} />
         <Tile label="Calls shown" num={m.shown} format={fmtInt} sub={<span><b>{fmtPct(m.showRate)}</b> show rate</span>} />
         <Tile label="Clients closed" num={m.closed} format={fmtInt} sub={<span><b>{fmtPct(m.closeRate)}</b> close rate</span>} />
         <Tile label="Cash collected" num={m.cash} format={fmtEuro} red delta={wow.cash} spark={sparks.cash}

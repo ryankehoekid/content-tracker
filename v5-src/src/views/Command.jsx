@@ -90,13 +90,15 @@ function Tiles({ daily, replies, m }) {
   const t = (o) => [["this wk", fmtInt(o.cur)], ["last wk", fmtInt(o.prev)]];
   return (
     <div className="tiles">
-      <Tile label="Initials" num={m.initials} format={fmtInt} sub={fmtPct(m.replyRate) + " reply rate"} delta={wow.initials} spark={spark.initials} tip={t(ws.initials)} />
+      {/* Each stage carries its own rate: the rate under a tile is always
+          "how this stage converts from the one before it". */}
+      <Tile label="Initials" num={m.initials} format={fmtInt} sub={fmtInt(m.touches) + " total touches"} delta={wow.initials} spark={spark.initials} tip={t(ws.initials)} />
       <Tile label="Follow ups" num={m.followUps} format={fmtInt} sub={fmtNum(safeDiv(m.followUps, m.initials)) + " per initial"} delta={wow.followUps} spark={spark.followUps} tip={t(ws.followUps)} />
       <Tile label="Comments" num={m.comments} format={fmtInt} sub={fmtPct(m.commentCoverage, 0) + " of initials"} delta={wow.comments} spark={spark.comments} tip={t(ws.comments)} />
-      <Tile label="Replies" num={m.replies} format={fmtInt} sub={fmtPct(m.bookingRate) + " to booked"} delta={wow.replies} spark={spark.replies} tip={t(ws.replies)} />
-      <Tile label="Booked" num={m.booked} format={fmtInt} sub={fmtPct(m.showRate) + " show rate"} delta={wow.booked} spark={spark.booked} tip={t(ws.booked)} />
-      <Tile label="Shown" num={m.shown} format={fmtInt} sub={fmtPct(m.closeRate) + " close rate"} />
-      <Tile label="Closed" num={m.closed} format={fmtInt} red sub={m.avgDeal > 0 ? fmtEuro(m.avgDeal) + " avg deal" : ""} />
+      <Tile label="Replies" num={m.replies} format={fmtInt} sub={fmtPct(m.replyRate) + " reply rate"} delta={wow.replies} spark={spark.replies} tip={t(ws.replies)} />
+      <Tile label="Booked" num={m.booked} format={fmtInt} sub={fmtPct(m.bookingRate) + " booking rate"} delta={wow.booked} spark={spark.booked} tip={t(ws.booked)} />
+      <Tile label="Shown" num={m.shown} format={fmtInt} sub={fmtPct(m.showRate) + " show rate"} />
+      <Tile label="Closed" num={m.closed} format={fmtInt} red sub={fmtPct(m.closeRate) + " close rate" + (m.avgDeal > 0 ? " · " + fmtEuro(m.avgDeal) + " avg" : "")} />
       <Tile label="Cash" num={m.cash} format={fmtEuro} red sub={fmtEuro(m.outstanding) + " outstanding"} delta={wow.cash} spark={spark.cash} tip={t(ws.cash)} />
     </div>
   );
