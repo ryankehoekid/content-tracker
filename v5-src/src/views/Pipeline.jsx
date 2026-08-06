@@ -200,41 +200,82 @@ function Gauge({ label, value, floor, strong, sample, sampleNeed, sampleUnit }) 
   );
 }
 
+/* The pipeline as a work-order: grouped by what deserves attention now,
+   filterable, each lead carrying its stage progress at a glance. */
 function PipelineList({ replies }) {
-  const rows = [...replies].sort((a, b) => b.date - a.date);
-  const stage = (r) => (r.dead ? "dead" : r.closed ? "closed" : r.showed ? "shown" : r.booked ? "booked" : r.status.toLowerCase() === "talking" ? "talking" : "replied");
+  const [filter, setFilter] = React.useState("all");
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const ageOf = (r) => Math.max(0, Math.round((today - r.date) / DAY_MS));
-  const ageClass = (r) => {
-    if (stage(r) !== "replied") return "";
-    const a = ageOf(r);
-    return a > 7 ? " stale" : a >= 2 ? " aging" : "";
+  const catOf = (r) => {
+    if (r.dead) return "dead";
+    if (r.closed) return "won";
+    if (r.booked || r.showed || ["talking", "waiting"].includes(r.status.toLowerCase())) return "working";
+    return ageOf(r) > 7 ? "stale" : "live";
   };
+  const rows = [...replies].sort((a, b) => b.date - a.date);
+  const cats = { live: [], stale: [], working: [], won: [], dead: [] };
+  rows.forEach((r) => cats[catOf(r)].push(r));
+  const GROUPS = [
+    ["live", "Live, work these now"],
+    ["stale", "Stale, rescue or kill"],
+    ["working", "In play"],
+    ["won", "Won"],
+    ["dead", "Dead"],
+  ];
+  const FILTERS = [["all", "All"], ...GROUPS.map(([k]) => [k, k])];
+  const Row = ({ r }) => {
+    const cat = catOf(r);
+    const a = ageOf(r);
+    const fresh = cat === "live" && a <= 1;
+    const name = displayName(r);
+    const prog = [true, r.booked, r.showed, r.closed];
+    return (
+      <div className={"pl-row" + (r.dead ? " is-dead" : "") + (fresh ? " is-fresh" : "")}>
+        <span className={"pl-mono " + cat}>{(name.replace(/^@/, "")[0] || "?").toUpperCase()}</span>
+        <span className="pl-name" title={r.handle}>
+          {name}
+          <span className="pl-sub">
+            {shortDate(r.date)}{r.timeReplied ? " · " + r.timeReplied : ""}
+            {r.account ? " · " + r.account.toLowerCase() : ""}
+            {r.dead && r.deadReason ? " · " + r.deadReason.toLowerCase() : ""}
+            {r.callDate && !r.showed && !r.closed && !r.dead ? " · call " + shortDate(r.callDate) : ""}
+          </span>
+        </span>
+        {r.closed && r.cash > 0 ? (
+          <span className="pipe-money">{fmtEuro(r.cash)}{r.dealValue > r.cash ? " of " + fmtEuro(r.dealValue) : ""}</span>
+        ) : !r.dead && !r.closed ? (
+          <span className={"age" + (cat === "stale" ? " stale" : a >= 2 ? " aging" : "")}>{a}d</span>
+        ) : <span />}
+        <span className="pl-dots" title="replied / booked / shown / closed">
+          {prog.map((on, i) => <i key={i} className={"sd" + (on ? " on" : "") + (r.dead ? " x" : "")} />)}
+        </span>
+      </div>
+    );
+  };
+  const shown = filter === "all" ? null : cats[filter];
   return (
     <div className="card">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
         <h2 className="sec" style={{ margin: 0 }}>Pipeline</h2>
-        <span className="label">{rows.length} {rows.length === 1 ? "reply" : "replies"}</span>
+        <div className="ptabs" style={{ margin: 0 }}>
+          {FILTERS.map(([k, label]) => (
+            <button key={k} className={"btn sm" + (filter === k ? " active" : "")} onClick={() => setFilter(k)}>
+              {label}{k !== "all" && cats[k].length ? " " + cats[k].length : ""}
+            </button>
+          ))}
+        </div>
       </div>
       {rows.length === 0 && <div className="note">No replies in this window yet.</div>}
       <div className="pipe-scroll">
-        {rows.map((r, i) => (
-          <div className={"pipe-row" + (r.dead ? " is-dead" : "")} key={i}>
-            <span className="pipe-name">{displayName(r)}</span>
-            {!r.closed && !r.dead && <span className={"age" + ageClass(r)} title={"replied " + ageOf(r) + " days ago"}>{ageOf(r)}d</span>}
-            {r.account && <span className="age" title="account">{r.account.replace(/^Acc /i, "A")}</span>}
-            <span className={"chip " + stage(r)} title={r.dead && r.deadReason ? r.deadReason : undefined}>
-              {r.dead && r.deadReason ? "dead · " + r.deadReason.toLowerCase() : stage(r)}
-            </span>
-            {r.closed && r.cash > 0 && (
-              <span className="pipe-money">
-                {fmtEuro(r.cash)}{r.dealValue > r.cash ? " of " + fmtEuro(r.dealValue) : ""}{r.paymentPlan ? " · plan" : ""}
-              </span>
-            )}
-            <span className="pipe-date">{shortDate(r.date)}{r.timeReplied ? " · " + r.timeReplied : ""}</span>
-          </div>
-        ))}
+        {shown
+          ? shown.map((r, i) => <Row r={r} key={i} />)
+          : GROUPS.map(([k, title]) => cats[k].length > 0 && (
+              <div key={k}>
+                <div className={"pl-group pg-" + k}><span>{title}</span><b>{cats[k].length}</b></div>
+                {cats[k].map((r, i) => <Row r={r} key={i} />)}
+              </div>
+            ))}
       </div>
     </div>
   );
