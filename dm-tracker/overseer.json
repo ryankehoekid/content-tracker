@@ -1,26 +1,30 @@
 {
-  "date": "2026-08-05",
-  "headline": "At current measured rates the whole machine ceilings around EUR 1,600 a month. Volume is not the lever right now, rates are: reply rate to its 3% floor is worth roughly EUR 2,500 a month, booking rate to its 25% floor another EUR 1,600. Fix conversion before pushing volume.",
+  "date": "2026-08-06",
+  "headline": "Reframed under the corrected account model: this is a one-account operation running roughly 500 actions a day through the main profile, and that overload is the leading suspect for both the action blocks and the 1.3% reply rate. The account fleet buildout is now the strategic move; booking the 6 live unbooked replies is the free cash this week.",
   "sections": [
     {
       "title": "The bottleneck",
-      "text": "Reply rate, with a deliverability suspect attached. 1.2% measured on 642 sends (gate met) against a 3% floor, while ladder and comment execution are healthy. The Aug 3 note flags account 1, and volume has run at exactly two-of-three accounts pace since Aug 1. One MEASURED fact, one HYPOTHESIS: the rate is low (fact), the flagged account is dragging it (hypothesis, testable by splitting replies per account for one week)."
+      "text": "Single-account concentration. Doctrine correction from Ryan: there is no three-account fleet yet, one main account carries ~100 initials a day plus the follow up load (~440 to 540 logged actions daily), with Instagram action blocks as the ceiling and an unwarmed alt that replies worse. That overload plausibly explains the blocks (MEASURED: volume dips and the Aug 3 note), the reply rate of 1.3% on 713 sends (MEASURED, gate met, floor 3%), or both. Per the message-dead rules, copy cannot be blamed until account throttling is ruled out."
     },
     {
       "title": "Levers, ranked by cash",
-      "text": "1. Reply rate 1.2% to 3%: about EUR 2,500 a month at current volume (MEASURED input, baseline show and close). Order of operations per playbook: deliverability first, opener second, sourcing fit third. 2. Booking rate 12.5% to 25%: about EUR 1,600 a month; 8 replies is just under the 10-reply gate, so treat as directional, but the concrete version is free: Owen, mrplusmoney and cblez are sitting past 7 days unbooked, and Ryan and rahul are live now. 3. Cash per close EUR 5k to 7.5k: only about EUR 800 a month today, but it scales with every upstream fix and costs one pricing decision. 4. Volume 69 to 100 a day: about EUR 750 a month at current rates. That number is the proof that sending more into a 1.2% funnel is the weakest move on the board, and it flips to the strongest once reply rate is fixed."
+      "text": "1. Reply rate 1.3% to 3%: roughly EUR 2,000 a month at current pace (MEASURED input, baseline show and close), and the fix order is account health first, copy second. 2. Booking rate 11.1% to 25%: roughly EUR 2,000 a month, now nearly equal to the reply lever; 9 replies sits one short of the 10-reply gate, and the concrete version costs nothing: Owen (11d), mrplusmoney (10d) and cblez (10d) are stale past a week, Adam and Matt are aging at 3 days, Ryan, rahul and Caleb replied within 24 hours and are live right now. Speed to lead is doctrine. 3. Account fleet to three warmed profiles: not directly priceable yet (HYPOTHESIS), but it is the only lever that raises the volume ceiling, removes block risk from the main brand asset, and tests the profile-credibility hypothesis at once. 4. Cash per close 5k to 7.5k: small today, scales with every upstream fix."
     },
     {
       "title": "Strategic moves",
-      "text": "One constraint at a time, so this week is the account and the rate: verify account 1 health, restore the third account (aged spare from the benched supplier if needed), and split reply counts per account for one week to isolate deliverability from copy. Second: the cash lag is real, EUR 5k upfront on 10-15k deals means calls booked this month are mostly September cash, so August's honest job is booked calls, not collected cash. Third: pipeline concentration, roughly 60% of the lead sheet is trading; at 300+ sends of trading data, start pricing an AI or ecom batch against it. Fourth: do not think about a second setter yet, the playbook gate (3% reply, 25% booking, queue cleared daily) is not met."
+      "text": "One constraint at a time. This week: get a delivery date from the warm-up vendor for accounts 2 and 3 and judge them on looking credible, not just aged, per the account quality hypothesis. Do not push the main account harder into blocks; the ceiling is the ceiling until the fleet lands. Before the next booked call, load the pre-call sequence with testimonials and results assets, the Kyle Cooke rule. And hold the frame on August: with EUR 5k upfront on payment plans, calls booked now are mostly September cash, so this month is scored on booked calls."
     },
     {
       "title": "What you would miss",
-      "text": "The two records disagree: the EOD form says 400+ follow ups a day, the lead sheet has not been updated since 31 July and shows 70 leads overdue. One of them is wrong and both feed decisions; settle it this week. Also, at current rates every follow up touch carries about EUR 1 of expected cash, which means a skipped 400-touch day quietly costs a client every few weeks. And commission liability is accruing on any cash that lands, 7.5%, worth tracking from the first collected euro."
+      "text": "One more reply hits the 10-reply gate, and at 1 of 10 the booking verdict goes officially red; working the 6 unbooked replies before that gate trips is the difference between a fixed number and a formal failure. The lead scheduler sheet still shows nothing updated since 31 July while the EOD form logs 400 follow ups a day; two records of the same work still disagree. Replies are clustering: 5 of 9 landed in the last 72 hours (sample too small for a verdict, worth watching). Commission liability accrues at 7.5% from the first collected euro."
     },
     {
       "title": "Do not touch",
-      "text": "The daily block schedule, the ladder design, comment coverage (96%), EOD logging discipline (6 for 6), and the reply time pattern, evening replies confirm the money block is placed right. These are working. Tenet 10 applies to the operator too."
+      "text": "The daily block schedule, the ladder design, comment logging (now flowing daily at ~97% of initials, fix confirmed working), EOD discipline (12 for 12 days), and evening reply timing. All working. Tenet 10."
+    },
+    {
+      "title": "Training questions for Ryan",
+      "text": "1. What exactly does the EOD follow up number count: DMs only, or comments, likes and story views too? The answer determines how far past block-safe limits the main account is actually running. 2. When do accounts 2 and 3 arrive from the warm-up vendor, and will Rhys tag which account each reply lands in once they are live?"
     }
   ]
 }
