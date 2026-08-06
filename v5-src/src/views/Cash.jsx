@@ -68,27 +68,74 @@ function CashTrajectory({ daily, replies, payments, m, calc }) {
   );
 }
 
+/* Deals as receipts: one card per close, the collected share filling in. */
 function Ledger({ replies }) {
   const deals = replies.filter((r) => r.closed).sort((a, b) => b.date - a.date);
-  if (!deals.length) return <div className="note">Closed deals land here with their collected vs signed split.</div>;
+  if (!deals.length) return <div className="note">Closed deals land here as receipts, collected vs signed filling in per deal.</div>;
   return (
-    <div>
+    <div className="deal-cards">
       {deals.map((r, i) => {
-        const pct = safeDiv(r.cash, r.dealValue || r.cash);
+        const total = r.dealValue || r.cash;
+        const pct = safeDiv(r.cash, total);
+        const name = displayName(r);
         return (
-          <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid #191919" }}>
-            <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
-              <span className="pipe-name">{displayName(r)}</span>
+          <div className="deal-card" key={i}>
+            <div className="dc-top">
+              <span className="pl-mono won">{(name.replace(/^@/, "")[0] || "?").toUpperCase()}</span>
+              <span className="dc-name" title={r.handle}>{name}</span>
               {r.paymentPlan && <span className="chip">plan</span>}
-              <span className="pipe-money" style={{ marginLeft: "auto" }}>{fmtEuro(r.cash)} of {fmtEuro(r.dealValue || r.cash)}</span>
-              <span className="pipe-date">{shortDate(r.date)}</span>
             </div>
-            <div className="lbar-track" style={{ marginTop: 7 }}>
-              <span className="lbar-fill" style={{ width: Math.max(pct * 100, 2) + "%" }} />
+            <div className="dc-amount display">{fmtEuro(r.cash)}<span className="dc-of"> of {fmtEuro(total)}</span></div>
+            <div className="lbar-track"><span className="lbar-fill" style={{ width: Math.max(pct * 100, 2) + "%" }} /></div>
+            <div className="dc-foot">
+              <span>{fmtPct(pct, 0)} collected</span>
+              <span>{r.dateClosed ? shortDate(r.dateClosed) : shortDate(r.date)}</span>
             </div>
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/* Payments as a waterfall: each landing stacked into the running total.
+   Rows whose note mentions rev share or backend are split out as the
+   backend engine, tracked separately from upfront cash. */
+function isRevShare(p) {
+  return /rev\s?-?share|backend/i.test(p.notes || "");
+}
+function PaymentsFlow({ payments }) {
+  if (!payments.length) {
+    return <div className="note">The Payments tab is live. One row per payment the day it lands; the waterfall, the monthly numbers and the backend split all read from it. Tag backend money with "rev share" in the Notes column.</div>;
+  }
+  const total = payments.reduce((s, p) => s + p.amount, 0);
+  const upfront = payments.filter((p) => !isRevShare(p)).reduce((s, p) => s + p.amount, 0);
+  const backend = total - upfront;
+  const ordered = [...payments].sort((a, b) => a.date - b.date);
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div className="label" style={{ marginBottom: 8 }}>Payment waterfall</div>
+      <div className="wf">
+        {ordered.map((p, i) => (
+          <span key={i} className={"wf-seg" + (isRevShare(p) ? " rev" : "")}
+            style={{ width: Math.max((p.amount / total) * 100, 1.5) + "%" }}
+            title={shortDate(p.date) + ": " + fmtEuro(p.amount) + (p.handle ? " · " + p.handle : "") + (isRevShare(p) ? " · rev share" : "")} />
+        ))}
+      </div>
+      <div className="wf-legend">
+        <span><i className="wl-up" />upfront {fmtEuro(upfront)}</span>
+        <span><i className="wl-rev" />backend rev share {fmtEuro(backend)}</span>
+        <span style={{ marginLeft: "auto" }}>{ordered.length} payments · {fmtEuro(total)}</span>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        {[...payments].sort((a, b) => b.date - a.date).slice(0, 10).map((p, i) => (
+          <div className="ev" key={i}>
+            <span className="ev-date">{shortDate(p.date)}</span>
+            <span className="ev-label">{p.handle || p.notes || "payment"}{isRevShare(p) ? " · rev share" : ""}</span>
+            <span className="pipe-money" style={{ marginLeft: "auto" }}>{fmtEuro(p.amount)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -177,25 +224,6 @@ function Planning({ calc, setCalc, m }) {
   );
 }
 
-function PaymentsLog({ payments }) {
-  if (!payments.length) {
-    return <div className="note">The Payments tab is live. One row per payment the day it lands; this ledger and the monthly numbers read from it.</div>;
-  }
-  const rows = [...payments].sort((a, b) => b.date - a.date).slice(0, 12);
-  return (
-    <div style={{ marginTop: 14 }}>
-      <div className="label" style={{ marginBottom: 6 }}>Payments received</div>
-      {rows.map((p, i) => (
-        <div className="ev" key={i}>
-          <span className="ev-date">{shortDate(p.date)}</span>
-          <span className="ev-label">{p.handle || p.notes || "payment"}</span>
-          <span className="pipe-money" style={{ marginLeft: "auto" }}>{fmtEuro(p.amount)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function Cash({ daily, replies, payments, m, calc, setCalc }) {
   const cm = cashModel(replies, payments);
   const commission = cm.all * COMMISSION_RATE;
@@ -238,7 +266,7 @@ export default function Cash({ daily, replies, payments, m, calc, setCalc }) {
         <Reveal className="card">
           <h2 className="sec">Deal Ledger</h2>
           <Ledger replies={replies} />
-          <PaymentsLog payments={payments} />
+          <PaymentsFlow payments={payments} />
         </Reveal>
         <Reveal delay={60}><Planning calc={calc} setCalc={setCalc} m={m} /></Reveal>
       </div>

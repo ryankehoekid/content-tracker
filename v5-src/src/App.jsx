@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { DEFAULT_CALC, REDUCED_MOTION, SHEET_URL, LEADS_SHEET_URL } from "./core/config.js";
 import { computeMetrics, computeAnomalies } from "./core/metrics.js";
 import { useData } from "./core/useData.js";
@@ -137,6 +137,28 @@ export default function App() {
   }, [go, reload, tv]);
 
   const m = useMemo(() => (daily && replies ? computeMetrics(daily, replies) : null), [daily, replies]);
+
+  // The stone surges when a refresh lands with moved numbers.
+  const snapRef = useRef(null);
+  const [flareTick, setFlareTick] = useState(0);
+  useEffect(() => {
+    if (!m) return;
+    const snap = [m.initials, m.replies, m.booked, m.shown, m.closed, Math.round(m.cash)].join("|");
+    if (snapRef.current && snapRef.current !== snap) setFlareTick((t) => t + 1);
+    snapRef.current = snap;
+  }, [m]);
+
+  // View switches ride a terminal wipe instead of an instant swap.
+  const [shownRoute, setShownRoute] = useState(route);
+  const [wiping, setWiping] = useState(false);
+  useEffect(() => {
+    if (route === shownRoute) return;
+    if (REDUCED_MOTION) { setShownRoute(route); return; }
+    setWiping(true);
+    const t1 = setTimeout(() => setShownRoute(route), 150);
+    const t2 = setTimeout(() => setWiping(false), 340);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [route, shownRoute]);
   const anomalies = useMemo(
     () => (daily && replies ? computeAnomalies(daily, replies, leads, calc.capacity) : []),
     [daily, replies, leads, calc.capacity]
@@ -151,7 +173,7 @@ export default function App() {
     );
   }
 
-  const View = (VIEWS.find((v) => v.id === route) || VIEWS[0]).el;
+  const View = (VIEWS.find((v) => v.id === shownRoute) || VIEWS[0]).el;
   const actions = [
     { label: "Refresh data", k: "R", run: reload },
     { label: (tv ? "Exit" : "Enter") + " TV mode", k: "T", run: () => setTv((v) => !v) },
@@ -192,12 +214,13 @@ export default function App() {
             {anomalies.map((a, i) => <span key={i} className={"sig " + a.sev}>{a.text}</span>)}
           </div>
         )}
-        <View daily={daily} replies={replies} leads={leads} payments={payments} m={m} calc={calc} setCalc={setCalc} />
+        <View daily={daily} replies={replies} leads={leads} payments={payments} m={m} calc={calc} setCalc={setCalc} flare={flareTick} />
         <div className="footer">
           <span>KEHOEGROUP · Blood &amp; Ink</span>
           <span>keys: 1-4 views · T tv · R refresh · ⌘K palette</span>
         </div>
       </div>
+      {wiping && <div className="wipe" aria-hidden="true" />}
       <Palette open={palOpen} close={() => setPalOpen(false)} go={go} actions={actions} />
     </div>
   );

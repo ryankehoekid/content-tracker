@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KEHOEGROUP. Week in Review</title>
+<style>
+  @font-face { font-family: 'Archivo Black'; src: url('fonts/archivo-black-latin-400-normal.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'Archivo'; src: url('fonts/archivo-latin-400-normal.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'Archivo'; src: url('fonts/archivo-latin-600-normal.woff2') format('woff2'); font-weight: 600; }
+  @font-face { font-family: 'Space Mono'; src: url('fonts/space-mono-latin-400-normal.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'Space Mono'; src: url('fonts/space-mono-latin-700-normal.woff2') format('woff2'); font-weight: 700; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #050505; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+  .card {
+    width: 1200px; height: 675px; background: #0A0A0A; position: relative; overflow: hidden;
+    border: 1px solid #1E1E1E; color: #F4F2ED; font-family: 'Archivo', sans-serif;
+    display: flex; flex-direction: column; padding: 52px 60px 44px; flex: none;
+  }
+  .card::before { content: ""; position: absolute; inset: 0;
+    background: radial-gradient(900px 500px at 82% 110%, rgba(225,20,20,0.13), transparent 65%); pointer-events: none; }
+  .card::after { content: ""; position: absolute; inset: 0; opacity: 0.05; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E"); }
+  .corner { position: absolute; width: 26px; height: 26px; border: 2px solid rgba(225,20,20,0.6); }
+  .tl { top: 18px; left: 18px; border-right: 0; border-bottom: 0; }
+  .tr { top: 18px; right: 18px; border-left: 0; border-bottom: 0; }
+  .bl { bottom: 18px; left: 18px; border-right: 0; border-top: 0; }
+  .br { bottom: 18px; right: 18px; border-left: 0; border-top: 0; }
+  .top { display: flex; justify-content: space-between; align-items: baseline; }
+  .wordmark { font-family: 'Archivo Black', sans-serif; font-size: 30px; letter-spacing: 0.01em; }
+  .wordmark i { font-style: normal; color: #E11414; }
+  .tag { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.3em; color: #7A7A7A; text-transform: uppercase; }
+  .week { font-family: 'Space Mono', monospace; font-size: 13px; letter-spacing: 0.16em; color: #E11414; text-transform: uppercase; margin-top: 34px; }
+  .headline { font-family: 'Archivo', sans-serif; font-weight: 600; font-size: 27px; line-height: 1.42; max-width: 900px; margin-top: 12px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 40px; margin-top: auto; padding-top: 34px; }
+  .stat .l { font-family: 'Space Mono', monospace; font-size: 10.5px; letter-spacing: 0.18em; color: #7A7A7A; text-transform: uppercase; }
+  .stat .v { font-family: 'Archivo Black', sans-serif; font-size: 42px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat .v.red { color: #E11414; text-shadow: 0 0 26px rgba(225,20,20,0.4); }
+  .stat .s { font-family: 'Space Mono', monospace; font-size: 10px; color: #4A4A4A; margin-top: 3px; letter-spacing: 0.06em; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 32px; padding-top: 18px; border-top: 1px solid #1E1E1E;
+    font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: #7A7A7A; text-transform: uppercase; }
+  .foot b { color: #F4F2ED; font-weight: 400; }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="top">
+    <span class="wordmark">KEHOEGROUP<i>.</i></span>
+    <span class="tag">Week in Review</span>
+  </div>
+  <div class="week" id="week"></div>
+  <div class="headline" id="headline"></div>
+  <div class="stats" id="stats"></div>
+  <div class="foot"><span id="footline"></span><span>OPS TERMINAL</span></div>
+</div>
+<script>
+  function render(R) {
+    document.getElementById("week").textContent = R.week || "";
+    document.getElementById("headline").textContent = R.headline || "";
+    document.getElementById("footline").innerHTML = R.footline || "";
+    var wrap = document.getElementById("stats");
+    (R.stats || []).slice(0, 6).forEach(function (s) {
+      var d = document.createElement("div");
+      d.className = "stat";
+      d.innerHTML = '<div class="l"></div><div class="v' + (s.red ? " red" : "") + '"></div><div class="s"></div>';
+      d.children[0].textContent = s.label;
+      d.children[1].textContent = s.value;
+      d.children[2].textContent = s.sub || "";
+      wrap.appendChild(d);
+    });
+    document.title = "KEHOEGROUP. Week in Review " + (R.week || "");
+  }
+  if (window.REPORT) render(window.REPORT);
+  else fetch("/dm-tracker/report.json?cb=" + Date.now())
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (R) { if (R) render(R); })
+    .catch(function () {});
+</script>
+</body>
+</html>

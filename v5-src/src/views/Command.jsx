@@ -125,7 +125,7 @@ function Tiles({ daily, replies, m }) {
   );
 }
 
-function Palantir({ daily, replies, leads, m, calc }) {
+function Palantir({ daily, replies, leads, m, calc, flare }) {
   const zones = healthZones(daily, replies, calc.capacity);
   const fr = computeFindings(daily, replies, calc.capacity, m);
   const levers = computeLevers(daily, replies, leads, m, calc);
@@ -135,6 +135,7 @@ function Palantir({ daily, replies, leads, m, calc }) {
   const [openDir, setOpenDir] = useState(null);
   const [openLog, setOpenLog] = useState(null);
   const [openLever, setOpenLever] = useState(null);
+  const [speak, setSpeak] = useState(false);
   const brief = usePublished("overseer");
   const memo = usePublished("memo");
   const dailyBrief = usePublished("brief");
@@ -174,9 +175,17 @@ function Palantir({ daily, replies, leads, m, calc }) {
       )}
       <div className="pal-grid">
         <div>
-          <div className="orb-stage">
-            <PalantirOrb agitation={agitation} />
-            {top && (
+          <div className="orb-stage speakable" onClick={() => setSpeak((v) => !v)}
+            title="tap the stone" role="button" aria-label="ask the stone">
+            <PalantirOrb agitation={agitation} flare={flare} />
+            {speak ? (
+              <div className="orb-speak" key={String(speak)}>
+                <TypeOn text={fr.findings.length
+                  ? fr.findings[0].title + ". " + fr.findings[0].lever
+                  : brief ? brief.headline
+                  : "All quiet in the glass. Push volume, keep the ladder full."} />
+              </div>
+            ) : top && (
               <div className="orb-text">
                 <div className="display ov">{fmtEuroK(top.value)}</div>
                 <div className="ol">{top.per === "mo" ? "per month · top lever" : "one time · top lever"}</div>
@@ -263,12 +272,12 @@ function Palantir({ daily, replies, leads, m, calc }) {
   );
 }
 
-export default function Command({ daily, replies, leads, payments, m, calc }) {
+export default function Command({ daily, replies, leads, payments, m, calc, flare }) {
   return (
     <div>
       <Hero daily={daily} replies={replies} payments={payments} m={m} calc={calc} />
       <Tiles daily={daily} replies={replies} m={m} />
-      <Palantir daily={daily} replies={replies} leads={leads} m={m} calc={calc} />
+      <Palantir daily={daily} replies={replies} leads={leads} m={m} calc={calc} flare={flare} />
     </div>
   );
 }
