@@ -384,3 +384,56 @@ body.tv { cursor: none; }
 .center { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; }
 .notice { border: 1px solid rgba(201,162,39,0.4); background: rgba(201,162,39,0.06); color: var(--amber); font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.06em; padding: 10px 14px; margin: 10px 0; }
 .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-family: 'Space Mono', monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--steel-dim); }
+
+/* ---- ask the stone -------------------------------------------------------- */
+.askc { display: flex; flex-direction: column; gap: 10px; }
+.ask-thread { max-height: 340px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #2A2A2A transparent; display: flex; flex-direction: column; gap: 10px; }
+.ask-line { font-family: 'Space Mono', monospace; font-size: 12px; line-height: 1.65; color: var(--bone); }
+.ask-line.q { color: var(--steel); }
+.ask-tag { display: block; font-size: 9px; letter-spacing: 0.22em; color: var(--steel-dim); margin-bottom: 2px; }
+.ask-line.a .ask-tag { color: var(--red); }
+.ask-wait { color: var(--steel); }
+.ask-wait .cursor { animation: pulse 1s infinite; color: var(--red); }
+.ask-row { display: flex; gap: 8px; }
+.ask-input {
+  flex: 1; min-width: 0; background: var(--ink); border: 1px solid var(--line);
+  color: var(--bone); font-family: 'Space Mono', monospace; font-size: 12px;
+  padding: 9px 12px; outline: none; border-radius: 0; -webkit-appearance: none;
+}
+.ask-input:focus { border-color: rgba(225,20,20,0.55); }
+.ask-input::placeholder { color: var(--steel-dim); }
+.ask-send { border-color: rgba(225,20,20,0.5); color: var(--bone); }
+.ask-send:hover { background: var(--red); border-color: var(--red); }
+.ask-send:disabled { opacity: 0.5; cursor: default; }
+
+/* ---- setter cockpit ------------------------------------------------------- */
+.orders .order { display: flex; gap: 14px; padding: 11px 0; border-bottom: 1px solid #191919; align-items: baseline; }
+.orders .order:last-child { border-bottom: 0; }
+.order-n { font-size: 22px; color: var(--red); flex: none; width: 34px; }
+.order-t { font-size: 14px; font-weight: 600; color: var(--bone); letter-spacing: 0.01em; }
+.order-x { font-size: 12px; color: var(--steel); line-height: 1.55; margin-top: 3px; }
+.ql-modes { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 12px; }
+.ql-form { display: flex; flex-direction: column; gap: 8px; }
+.ql-row { display: flex; gap: 8px; }
+.ql-pin { flex: 0 1 110px; }
+.ql-bad { color: var(--amber); }
+select.ask-input { appearance: none; }
+
+/* ---- polish layer --------------------------------------------------------- */
+::selection { background: var(--red); color: var(--bone); }
+:focus-visible { outline: 1px solid rgba(225,20,20,0.7); outline-offset: 2px; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: #242424; border: 2px solid var(--ink); }
+*::-webkit-scrollbar-thumb:hover { background: var(--red); }
+
+/* a hairline that sweeps across a card's top edge on hover: the page answers
+   the cursor without anything moving */
+.card::after {
+  content: ""; position: absolute; top: -1px; left: 0; height: 1px; width: 100%;
+  background: linear-gradient(90deg, var(--red), rgba(225,20,20,0));
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.5s var(--ease); pointer-events: none;
+}
+.card:hover::after { transform: scaleX(1); }
+@media (prefers-reduced-motion: reduce) { .card::after { display: none; } }

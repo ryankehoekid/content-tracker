@@ -125,6 +125,81 @@ function Tiles({ daily, replies, m }) {
   );
 }
 
+/* Ask the stone: a question box wired to /api/ask, a serverless function
+   that reads the live sheets plus the doctrine and answers through the
+   Anthropic API. Degrades to a plain note when the function is not set up. */
+function AskConsole() {
+  const [q, setQ] = useState("");
+  const [thread, setThread] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const endRef = React.useRef(null);
+
+  const send = async (question, keyOverride) => {
+    try {
+      const r = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          question,
+          key: keyOverride || localStorage.getItem("palantirKey") || undefined,
+        }),
+      });
+      if (r.status === 401 && !keyOverride) {
+        const k = window.prompt("This stone is keyed. Enter the ask key:");
+        if (k) { localStorage.setItem("palantirKey", k); return send(question, k); }
+        return "The stone stays dark without the key.";
+      }
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 503) return "The stone is not wired yet. In Vercel, set ANTHROPIC_API_KEY (and PALANTIR_DOCTRINE) to switch it on.";
+      if (!r.ok || !data.answer) return "The stone clouded over (" + (data.error || r.status) + "). Ask again.";
+      return data.answer;
+    } catch {
+      return "The stone is unreachable. Check the connection and ask again.";
+    }
+  };
+
+  const ask = async () => {
+    const question = q.trim();
+    if (!question || busy) return;
+    setQ("");
+    setBusy(true);
+    setThread((t) => [...t, { role: "q", text: question }]);
+    const answer = await send(question);
+    setThread((t) => [...t, { role: "a", text: answer }]);
+    setBusy(false);
+    requestAnimationFrame(() => endRef.current && endRef.current.scrollIntoView({ block: "nearest" }));
+  };
+
+  return (
+    <div className="askc">
+      <div className="ask-thread">
+        {thread.length === 0 && (
+          <div className="note">Ask the stone anything the sheets can answer. It reads the live Daily Log, Replies, Payments and lead scheduler, holds the doctrine, and cites its numbers. Try: "why is booking rate below floor" or "what happens to the month if we hold this pace".</div>
+        )}
+        {thread.map((line, i) => (
+          <div key={i} className={"ask-line " + line.role}>
+            <span className="ask-tag">{line.role === "q" ? "> RYAN" : "< STONE"}</span>
+            {line.role === "a" && i === thread.length - 1 && !busy
+              ? <TypeOn text={line.text} />
+              : <span className="ask-text">{line.text}</span>}
+          </div>
+        ))}
+        {busy && <div className="ask-line a"><span className="ask-tag">{"< STONE"}</span><span className="ask-wait">the glass is turning<span className="cursor">_</span></span></div>}
+        <div ref={endRef} />
+      </div>
+      <div className="ask-row">
+        <input
+          className="ask-input" type="text" value={q} maxLength={600}
+          placeholder="ask the stone"
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") ask(); e.stopPropagation(); }}
+        />
+        <button className="btn ask-send" onClick={ask} disabled={busy}>ASK</button>
+      </div>
+    </div>
+  );
+}
+
 function Palantir({ daily, replies, leads, m, calc, flare }) {
   const zones = healthZones(daily, replies, calc.capacity);
   const fr = computeFindings(daily, replies, calc.capacity, m);
@@ -213,10 +288,12 @@ function Palantir({ daily, replies, leads, m, calc, flare }) {
         <div className="console">
           <div className="ptabs">
             {tabBtn("alerts", "Alerts" + (fr.findings.length ? " · " + fr.findings.length : ""))}
+            {tabBtn("ask", "Ask")}
             {tabBtn("daily", "Daily")}
             {tabBtn("brief", "Brief")}
             {tabBtn("log", "Log")}
           </div>
+          {tab === "ask" && <AskConsole />}
           {tab === "alerts" && (
             <div>
               {fr.findings.length === 0 && (
