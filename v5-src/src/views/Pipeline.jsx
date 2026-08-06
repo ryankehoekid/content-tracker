@@ -1,7 +1,7 @@
 import React from "react";
 import { KPI, DAY_MS } from "../core/config.js";
 import { fmtInt, fmtEuro, fmtPct, dayKey, shortDate } from "../core/format.js";
-import { displayName, parseReplyHour, TIME_BANDS, meanReplyTime } from "../core/metrics.js";
+import { displayName, parseReplyHour, TIME_BANDS, meanReplyTime, speedToBook, upcomingCalls, lossReasons, accountSplit } from "../core/metrics.js";
 import { Reveal } from "../ui/atoms.jsx";
 
 const C = { red: "#E11414", bone: "#F4F2ED", steel: "#7A7A7A" };
@@ -103,7 +103,7 @@ function Gauge({ label, value, floor, strong, sample, sampleNeed, sampleUnit }) 
 
 function PipelineList({ replies }) {
   const rows = [...replies].sort((a, b) => b.date - a.date);
-  const stage = (r) => (r.closed ? "closed" : r.showed ? "shown" : r.booked ? "booked" : "replied");
+  const stage = (r) => (r.dead ? "dead" : r.closed ? "closed" : r.showed ? "shown" : r.booked ? "booked" : r.status.toLowerCase() === "talking" ? "talking" : "replied");
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const ageOf = (r) => Math.max(0, Math.round((today - r.date) / DAY_MS));
@@ -121,10 +121,13 @@ function PipelineList({ replies }) {
       {rows.length === 0 && <div className="note">No replies in this window yet.</div>}
       <div className="pipe-scroll">
         {rows.map((r, i) => (
-          <div className="pipe-row" key={i}>
+          <div className={"pipe-row" + (r.dead ? " is-dead" : "")} key={i}>
             <span className="pipe-name">{displayName(r)}</span>
-            {!r.closed && <span className={"age" + ageClass(r)} title={"replied " + ageOf(r) + " days ago"}>{ageOf(r)}d</span>}
-            <span className={"chip " + stage(r)}>{stage(r)}</span>
+            {!r.closed && !r.dead && <span className={"age" + ageClass(r)} title={"replied " + ageOf(r) + " days ago"}>{ageOf(r)}d</span>}
+            {r.account && <span className="age" title="account">{r.account.replace(/^Acc /i, "A")}</span>}
+            <span className={"chip " + stage(r)} title={r.dead && r.deadReason ? r.deadReason : undefined}>
+              {r.dead && r.deadReason ? "dead · " + r.deadReason.toLowerCase() : stage(r)}
+            </span>
             {r.closed && r.cash > 0 && (
               <span className="pipe-money">
                 {fmtEuro(r.cash)}{r.dealValue > r.cash ? " of " + fmtEuro(r.dealValue) : ""}{r.paymentPlan ? " · plan" : ""}
@@ -236,6 +239,54 @@ function Queue({ daily, leads }) {
   );
 }
 
+function Velocity({ replies }) {
+  const stb = speedToBook(replies);
+  const calls = upcomingCalls(replies);
+  const loss = lossReasons(replies);
+  const acc = accountSplit(replies);
+  if (!stb && !calls.length && !loss.total && !acc) return null;
+  return (
+    <div className="card">
+      <h2 className="sec">Velocity + Outcomes</h2>
+      <div className="streaks">
+        <div>
+          <div className="label">Reply to booked</div>
+          <div className="display sv">{stb ? stb.median + "d" : "--"}</div>
+          <div className="hdetail">{stb ? "median, " + stb.n + " booked with dates" : "needs Date Booked entries"}</div>
+        </div>
+        <div>
+          <div className="label">Booked inside 24h</div>
+          <div className="display sv">{stb ? fmtPct(stb.within24h, 0) : "--"}</div>
+          <div className="hdetail">speed to lead doctrine</div>
+        </div>
+        <div>
+          <div className="label">Lost leads</div>
+          <div className="display sv">{loss.total}</div>
+          <div className="hdetail">{loss.reasons.length ? loss.reasons.map(([k, v]) => k.toLowerCase() + " " + v).join(" · ") : "none marked dead yet"}</div>
+        </div>
+      </div>
+      {calls.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div className="label" style={{ marginBottom: 6 }}>Calls on the books</div>
+          {calls.map((r, i) => (
+            <div className="ev" key={i}>
+              <span className="ev-date">{shortDate(r.callDate)}</span>
+              <span className="ev-label">{displayName(r)}</span>
+              {r.account && <span className="ev-who">{r.account}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+      {acc && (
+        <div className="note">
+          Replies by account: {acc.accounts.map(([k, v]) => k + " " + v).join(" · ")}
+          {acc.tagged < acc.total && " · " + (acc.total - acc.tagged) + " untagged"}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Pipeline({ daily, replies, leads, m }) {
   return (
     <div className="grid">
@@ -256,7 +307,8 @@ export default function Pipeline({ daily, replies, leads, m }) {
               </div>
             </div>
           </Reveal>
-          <Reveal delay={120}><Queue daily={daily} leads={leads} /></Reveal>
+          <Reveal delay={120}><Velocity replies={replies} /></Reveal>
+          <Reveal delay={180}><Queue daily={daily} leads={leads} /></Reveal>
         </div>
       </div>
       <div className="two-col">

@@ -94,7 +94,7 @@ function Palette({ open, close, go, actions }) {
 }
 
 export default function App() {
-  const { daily, replies, leads, sample, loading, loadedAt, reload } = useData();
+  const { daily, replies, leads, payments, sample, loading, loadedAt, reload } = useData();
   const route = useHashRoute();
   const [calc, setCalc] = useState(() => {
     try {
@@ -192,7 +192,7 @@ export default function App() {
             {anomalies.map((a, i) => <span key={i} className={"sig " + a.sev}>{a.text}</span>)}
           </div>
         )}
-        <View daily={daily} replies={replies} leads={leads} m={m} calc={calc} setCalc={setCalc} />
+        <View daily={daily} replies={replies} leads={leads} payments={payments} m={m} calc={calc} setCalc={setCalc} />
         <div className="footer">
           <span>KEHOEGROUP · Blood &amp; Ink</span>
           <span>keys: 1-4 views · T tv · R refresh · ⌘K palette</span>

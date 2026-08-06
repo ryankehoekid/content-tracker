@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { sheetCsvUrl, leadsCsvUrls, AUTO_REFRESH_MS, DAILY_LOG_TAB, REPLIES_TAB } from "./config.js";
-import { parseDailyLog, parseReplies, parseLeads, buildSampleCsvs, sampleLeadsCsv } from "./parse.js";
+import { sheetCsvUrl, leadsCsvUrls, AUTO_REFRESH_MS, DAILY_LOG_TAB, REPLIES_TAB, PAYMENTS_TAB } from "./config.js";
+import { parseDailyLog, parseReplies, parseLeads, parsePayments, buildSampleCsvs, sampleLeadsCsv } from "./parse.js";
 
 async function fetchText(url) {
   const r = await fetch(url, { cache: "no-store" });
@@ -9,12 +9,12 @@ async function fetchText(url) {
 }
 
 export function useData() {
-  const [state, setState] = useState({ daily: null, replies: null, leads: [], sample: false, error: null, loadedAt: null });
+  const [state, setState] = useState({ daily: null, replies: null, leads: [], payments: [], sample: false, error: null, loadedAt: null });
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    let daily = null, replies = null, leads = [], sample = false, error = null;
+    let daily = null, replies = null, leads = [], payments = [], sample = false, error = null;
     try {
       const [dTxt, rTxt] = await Promise.all([
         fetchText(sheetCsvUrl(DAILY_LOG_TAB)),
@@ -22,11 +22,14 @@ export function useData() {
       ]);
       daily = parseDailyLog(dTxt);
       replies = parseReplies(rTxt);
+      // Payments tab is optional until it carries rows.
+      try { payments = parsePayments(await fetchText(sheetCsvUrl(PAYMENTS_TAB))); } catch { payments = []; }
     } catch (e) {
       // Live feed unreachable: run on sample data, clearly badged.
       const s = buildSampleCsvs();
       daily = parseDailyLog(s.daily);
       replies = parseReplies(s.replies);
+      payments = parsePayments(s.payments);
       sample = true;
       error = String(e.message || e);
     }
@@ -44,7 +47,7 @@ export function useData() {
         leads = parseLeads(sampleLeadsCsv());
       }
     } catch { /* cohort model fallback downstream */ }
-    setState({ daily, replies, leads, sample, error, loadedAt: new Date() });
+    setState({ daily, replies, leads, payments, sample, error, loadedAt: new Date() });
     setLoading(false);
   }, []);
 

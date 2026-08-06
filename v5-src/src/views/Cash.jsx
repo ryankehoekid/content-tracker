@@ -1,29 +1,33 @@
 import React, { useMemo, useState } from "react";
 import { DAY_MS, COMMISSION_RATE, FALLBACK_REPLY_RATE, FALLBACK_BOOKING_RATE } from "../core/config.js";
 import { fmtInt, fmtEuro, fmtEuroK, fmtNum, fmtPct, safeDiv, toNumber, shortDate } from "../core/format.js";
-import { forecastBands, computeProjection, displayName } from "../core/metrics.js";
+import { forecastBands, computeProjection, displayName, cashModel } from "../core/metrics.js";
 import { CountUp, Reveal, Badge } from "../ui/atoms.jsx";
 
 const C = { red: "#E11414", bone: "#F4F2ED", steel: "#7A7A7A", teal: "#3EC1BB" };
 
 /* Cumulative cash this month with the forecast cone to month end. */
-function CashTrajectory({ daily, replies, m, calc }) {
+function CashTrajectory({ daily, replies, payments, m, calc }) {
   const model = useMemo(() => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const cm = cashModel(replies, payments);
+    const usePayments = cm.source === "payments";
     const days = [];
     let cum = 0;
     for (let t = monthStart.getTime(); t <= today.getTime(); t += DAY_MS) {
       const d = new Date(t);
-      const dayCash = replies.filter((r) => r.date.getTime() === d.getTime()).reduce((s, r) => s + r.cash, 0);
+      const dayCash = usePayments
+        ? payments.filter((p) => p.date.getTime() === d.getTime()).reduce((s, p) => s + p.amount, 0)
+        : replies.filter((r) => r.date.getTime() === d.getTime()).reduce((s, r) => s + r.cash, 0);
       cum += dayCash;
       days.push({ x: d, y: cum });
     }
-    const bands = forecastBands(daily, replies, m, calc);
+    const bands = forecastBands(daily, replies, m, calc, cm.mtd);
     return { days, bands, monthEnd, today, goal: calc.goal };
-  }, [daily, replies, m, calc]);
+  }, [daily, replies, payments, m, calc]);
 
   const { days, bands, monthEnd, today, goal } = model;
   const W = 720, H = 260, padL = 52, padR = 14, padT = 14, padB = 26;
@@ -173,9 +177,29 @@ function Planning({ calc, setCalc, m }) {
   );
 }
 
-export default function Cash({ daily, replies, m, calc, setCalc }) {
-  const proj = computeProjection(daily, replies, m, calc);
-  const commission = m.cash * COMMISSION_RATE;
+function PaymentsLog({ payments }) {
+  if (!payments.length) {
+    return <div className="note">The Payments tab is live. One row per payment the day it lands; this ledger and the monthly numbers read from it.</div>;
+  }
+  const rows = [...payments].sort((a, b) => b.date - a.date).slice(0, 12);
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div className="label" style={{ marginBottom: 6 }}>Payments received</div>
+      {rows.map((p, i) => (
+        <div className="ev" key={i}>
+          <span className="ev-date">{shortDate(p.date)}</span>
+          <span className="ev-label">{p.handle || p.notes || "payment"}</span>
+          <span className="pipe-money" style={{ marginLeft: "auto" }}>{fmtEuro(p.amount)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function Cash({ daily, replies, payments, m, calc, setCalc }) {
+  const cm = cashModel(replies, payments);
+  const commission = cm.all * COMMISSION_RATE;
+  const outstanding = Math.max(m.dealValue - cm.all, 0);
   const planDeals = replies.filter((r) => r.closed && r.paymentPlan).length;
   const closedDeals = replies.filter((r) => r.closed).length;
   return (
@@ -183,13 +207,13 @@ export default function Cash({ daily, replies, m, calc, setCalc }) {
       <div className="tiles" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
         <Reveal className="tile">
           <div className="label">Collected, this month</div>
-          <div className="display val red"><CountUp value={proj.cashMTD} format={fmtEuro} /></div>
-          <div className="sub">{fmtPct(safeDiv(proj.cashMTD, calc.goal), 0)} of {fmtEuro(calc.goal)}</div>
+          <div className="display val red"><CountUp value={cm.mtd} format={fmtEuro} /></div>
+          <div className="sub">{fmtPct(safeDiv(cm.mtd, calc.goal), 0)} of {fmtEuro(calc.goal)}{cm.source === "payments" ? " · by payment date" : ""}</div>
         </Reveal>
         <Reveal className="tile" delay={50}>
           <div className="label">Signed, all time</div>
           <div className="display val"><CountUp value={m.dealValue} format={fmtEuro} /></div>
-          <div className="sub">{fmtEuro(m.outstanding)} still to collect</div>
+          <div className="sub">{fmtEuro(outstanding)} still to collect</div>
         </Reveal>
         <Reveal className="tile" delay={100}>
           <div className="label">Commission accrued</div>
@@ -202,15 +226,19 @@ export default function Cash({ daily, replies, m, calc, setCalc }) {
           <div className="sub">deals on plans; backend follows</div>
         </Reveal>
       </div>
+      {cm.mismatch && (
+        <div className="notice">Payments tab total ({fmtEuro(cm.mismatch.payAll)}) and reply-row cash ({fmtEuro(cm.mismatch.repliesAll)}) disagree. Two records of the same money should match; reconcile them.</div>
+      )}
       <Reveal className="card">
         <h2 className="sec">Cash Trajectory, this month</h2>
-        <CashTrajectory daily={daily} replies={replies} m={m} calc={calc} />
-        <div className="note">Red line is money banked. The cone is 500 simulated month-ends from the live rates: dashed midline P50, shaded P10 to P90. A thin sample means a wide cone; that is the honest read.</div>
+        <CashTrajectory daily={daily} replies={replies} payments={payments} m={m} calc={calc} />
+        <div className="note">Red line is money banked{cm.source === "payments" ? ", dated by when each payment landed" : ""}. The cone is 500 simulated month-ends from the live rates: dashed midline P50, shaded P10 to P90. A thin sample means a wide cone; that is the honest read.</div>
       </Reveal>
       <div className="two-col">
         <Reveal className="card">
           <h2 className="sec">Deal Ledger</h2>
           <Ledger replies={replies} />
+          <PaymentsLog payments={payments} />
         </Reveal>
         <Reveal delay={60}><Planning calc={calc} setCalc={setCalc} m={m} /></Reveal>
       </div>

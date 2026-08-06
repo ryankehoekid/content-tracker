@@ -197,6 +197,8 @@
   .pipe-money { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--bone); white-space: nowrap; }
   .pipe-date { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--steel); white-space: nowrap; }
   .chip { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 4px; padding: 3px 7px; white-space: nowrap; }
+  .chip.dead { color: #4A4A4A; border-color: #242424; }
+  .chip.talking { color: #3EC1BB; border-color: rgba(62,193,187,0.35); }
   .chip.closed { background: var(--red); color: var(--ink); font-weight: 700; }
   .chip.shown { border: 1px solid var(--bone); color: var(--bone); }
   .chip.booked { border: 1px solid var(--steel); color: var(--bone); }
@@ -688,6 +690,12 @@ function parseReplies(csvText) {
     // Optional column, tolerated when absent: the time of day the reply
     // landed. Captured raw now, analyzed once the sheet carries it.
     time: colIndex(H, "time replied", "time"),
+    // Phase 1 event columns; all optional.
+    status: colIndex(H, "status"),
+    deadReason: colIndex(H, "dead reason"),
+    account: colIndex(H, "account"),
+    dateBooked: colIndex(H, "date booked"),
+    dateClosed: colIndex(H, "date closed"),
   };
   const body = rows.slice(h + 1).filter((r) => !isJunkRow(r));
   const parseDate = makeDateParser(body.map((r) => r[ci.date]));
@@ -695,13 +703,19 @@ function parseReplies(csvText) {
   for (const r of body) {
     const date = parseDate(r[ci.date]);
     if (!date) continue;
+    const status = String(r[ci.status] || "").trim();
     out.push({
       date,
       handle: String(r[ci.handle] || "").trim(),
       name: String(r[ci.name] || "").trim(),
-      booked: toBool(r[ci.booked]),
+      status,
+      dead: status.toLowerCase() === "dead",
+      deadReason: String(r[ci.deadReason] || "").trim(),
+      account: String(r[ci.account] || "").trim(),
+      // Y flag, Status dropdown or event date: any one marks the stage.
+      booked: toBool(r[ci.booked]) || status.toLowerCase() === "booked" || !!parseDate(r[ci.dateBooked]),
       showed: toBool(r[ci.showed]),
-      closed: toBool(r[ci.closed]),
+      closed: toBool(r[ci.closed]) || !!parseDate(r[ci.dateClosed]),
       dealValue: toNumber(r[ci.dealValue]),
       cash: toNumber(r[ci.cash]),
       paymentPlan: toBool(r[ci.plan]),
@@ -1235,7 +1249,9 @@ function computeSignals(daily, replies, capacity) {
   }
 
   // Tier 1 discipline: replies never booked, sitting untouched past a week.
+  // Dead leads leave the pipeline; Talking means being worked, not stale.
   const stale = replies.filter((r) => !r.booked && !r.showed && !r.closed
+    && !r.dead && String(r.status || "").toLowerCase() !== "talking"
     && (today - r.date) / DAY_MS > 7).length;
 
   // Trailing 14 day reply performance, for the messaging verdict.
@@ -1968,12 +1984,13 @@ function displayName(r) {
 }
 function PipelinePanel({ replies }) {
   const rows = [...replies].sort((a, b) => b.date - a.date);
-  const stage = (r) => (r.closed ? "closed" : r.showed ? "shown" : r.booked ? "booked" : "replied");
+  const stage = (r) => (r.dead ? "dead" : r.closed ? "closed" : r.showed ? "shown" : r.booked ? "booked" : String(r.status || "").toLowerCase() === "talking" ? "talking" : "replied");
   const nowP = new Date();
   const todayP = new Date(nowP.getFullYear(), nowP.getMonth(), nowP.getDate());
   const ageOf = (r) => Math.max(0, Math.round((todayP - r.date) / DAY_MS));
   const ageClass = (r) => {
     if (stage(r) !== "replied") return "";
+    if (r.dead) return "";
     const a = ageOf(r);
     return a > 7 ? " stale" : a >= 2 ? " aging" : "";
   };
@@ -1988,8 +2005,8 @@ function PipelinePanel({ replies }) {
         {rows.map((r, i) => (
           <div className="pipe-row" key={i}>
             <span className="pipe-name">{displayName(r)}</span>
-            {!r.closed && <span className={"age" + ageClass(r)} title={"replied " + ageOf(r) + " days ago"}>{ageOf(r)}d</span>}
-            <span className={"chip " + stage(r)}>{stage(r)}</span>
+            {!r.closed && !r.dead && <span className={"age" + ageClass(r)} title={"replied " + ageOf(r) + " days ago"}>{ageOf(r)}d</span>}
+            <span className={"chip " + stage(r)} title={r.dead && r.deadReason ? r.deadReason : undefined}>{r.dead && r.deadReason ? "dead \u00b7 " + r.deadReason.toLowerCase() : stage(r)}</span>
             {r.closed && r.cash > 0 && (
               <span className="pipe-money">
                 {fmtEuro(r.cash)}{r.dealValue > r.cash ? " of " + fmtEuro(r.dealValue) : ""}{r.paymentPlan ? " · plan" : ""}

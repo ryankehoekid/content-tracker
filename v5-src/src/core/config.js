@@ -2,6 +2,7 @@
 export const SHEET_URL = "https://docs.google.com/spreadsheets/d/1HL4DISJ2mdz8BYm8qH0s385mV2eD4kkwMo9LGi45MDU/edit?usp=sharing";
 export const DAILY_LOG_TAB = "Daily Log";
 export const REPLIES_TAB = "Replies";
+export const PAYMENTS_TAB = "Payments";
 
 export const LEADS_SHEET_URL = "https://docs.google.com/spreadsheets/d/10xh4gB9vHChLIzf67lUto6Bvnp44_wc2uYbJOsBzUYo/edit?usp=sharing";
 export const LEADS_TABS = ["Lead Tracker", "Leads", "LEAD TRACKER", "Sheet1", ""];
