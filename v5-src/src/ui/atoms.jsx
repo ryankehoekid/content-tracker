@@ -161,7 +161,8 @@ export function LineChart({ series, height = 220, yFmt = (v) => String(Math.roun
                 fill={s.color} opacity="0.08" />
             )}
             <polyline points={pts.join(" ")} fill="none" stroke={s.color} strokeWidth="1.8"
-              strokeLinejoin="round" strokeLinecap="round" />
+              strokeLinejoin="round" strokeLinecap="round"
+              pathLength="1" className="drawline" />
           </g>
         );
       })}
