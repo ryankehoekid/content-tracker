@@ -403,6 +403,39 @@
   .orb-text .ol { font-size: 8.5px; letter-spacing: .16em; color: #B9B7B2; text-transform: uppercase; text-shadow: 0 0 8px rgba(10,10,10,0.95), 0 0 3px rgba(10,10,10,0.9); }
   .orb-text .on { font-size: 9px; color: var(--bone); text-transform: uppercase; letter-spacing: .08em; max-width: 130px; line-height: 1.5; text-shadow: 0 0 8px rgba(10,10,10,0.95), 0 0 3px rgba(10,10,10,0.9); }
 
+
+  /* palantir command block */
+  .sysdots { display: inline-flex; gap: 8px; align-items: center; }
+  .sysdot { width: 10px; height: 10px; border-radius: 50%; cursor: pointer; border: none; padding: 0; }
+  .sysdot.g { background: #4CAF6D; }
+  .sysdot.a { background: #C9A227; }
+  .sysdot.r { background: var(--red); box-shadow: 0 0 9px rgba(225,20,20,0.75); }
+  .sysdot.n { background: #3A3A3A; }
+  .dot-detail { font-family: 'Space Mono', monospace; font-size: 10.5px; letter-spacing: .06em; color: #D6D4CF; margin-top: 10px; }
+  .pal-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-top: 14px; align-items: start; }
+  @media (min-width: 980px) { .pal-grid { grid-template-columns: 360px 1fr; } }
+  .ptabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .alert-line { border-bottom: 1px solid #1E1E1E; padding: 10px 0; }
+  .alert-line:last-of-type { border-bottom: none; }
+  .alert-head { display: flex; gap: 10px; align-items: baseline; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .08em; color: #EDEBE6; cursor: pointer; }
+  .alert-head .sevr { color: var(--red); font-weight: 700; white-space: nowrap; }
+  .alert-head .seva { color: #C9A227; font-weight: 700; white-space: nowrap; }
+  .alert-body { font-size: 13px; color: #D6D4CF; line-height: 1.65; margin-top: 7px; }
+  .dir { border: 1px solid #222222; border-left: 3px solid var(--red); border-radius: 6px; padding: 11px 14px; margin-bottom: 9px; cursor: pointer; transition: border-color .2s ease; }
+  .dir:hover { border-color: #3A3A3A; border-left-color: var(--red); }
+  .dir-title { font-family: 'Space Mono', monospace; font-size: 10.5px; letter-spacing: .1em; color: #EDEBE6; }
+  .dir-title .dnum { color: var(--red); font-weight: 700; }
+  .dir-body { font-size: 13px; color: #D6D4CF; line-height: 1.7; margin-top: 8px; }
+  .brief-head { font-size: 14.5px; font-weight: 600; line-height: 1.6; color: #EDEBE6; margin-bottom: 12px; }
+  .lbars { margin-top: 16px; }
+  .lbar { padding: 8px 0; cursor: pointer; }
+  .lbar-top { display: flex; gap: 10px; align-items: baseline; }
+  .lbar-name { font-size: 13px; font-weight: 600; color: #EDEBE6; }
+  .lbar-val { margin-left: auto; font-size: 14px; white-space: nowrap; }
+  .lbar-track { height: 7px; background: #191919; border-radius: 4px; margin-top: 6px; overflow: hidden; }
+  .lbar-fill { display: block; height: 100%; background: linear-gradient(90deg, rgba(225,20,20,0.45), var(--red)); border-radius: 4px; }
+  .lbar-detail { font-size: 11.5px; color: #C9C7C2; margin-top: 6px; line-height: 1.6; }
+
   /* planning console summary */
   .plan-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--steel); }
   .plan-sum b { color: var(--bone); font-size: 15px; }
@@ -1275,7 +1308,7 @@ function HealthBoard({ daily, replies, capacity }) {
    reply rate before the opener is the problem. Downstream verdicts stay muted
    until their sample size can carry a conclusion.
 ============================================================================ */
-function Diagnosis({ daily, replies, capacity, m }) {
+function computeFindings(daily, replies, capacity, m) {
   const s = computeSignals(daily, replies, capacity);
   const findings = [];
   const waiting = [];
@@ -1351,25 +1384,7 @@ function Diagnosis({ daily, replies, capacity, m }) {
     waiting.push("close verdict (needs 5 shows, at " + fmtInt(m.shown) + ")");
   }
 
-  const top = findings.slice(0, 3);
-  return (
-    <div className="card" style={{ marginBottom: 12 }}>
-      <h2 className="sec">Diagnosis, what to fix first</h2>
-      {top.length === 0 && (
-        <div className="hzone hz-g" style={{ margin: 0 }}><span className="hdot" />No binding constraint visible. Push volume to capacity and keep the ladder at 5 touches.</div>
-      )}
-      {top.map((f, i) => (
-        <div className="diag-row" key={i} style={{ borderLeftColor: f.sev === "r" ? C.red : "#C9A227" }}>
-          <div className="diag-title">{i + 1}. {f.title}</div>
-          <div className="diag-ev">{f.evidence}</div>
-          <div className="diag-lever"><span>Lever</span> {f.lever}</div>
-        </div>
-      ))}
-      {waiting.length > 0 && (
-        <div className="chart-note">On mute until the sample can carry it: {waiting.join("; ")}.</div>
-      )}
-    </div>
-  );
+  return { findings, waiting };
 }
 
 /* ============================================================================
@@ -1466,7 +1481,7 @@ function computeLevers(daily, replies, leads, m, calc) {
 // The orb: a living plasma core rendered on canvas, breathing glow, drifting
 // filaments, ember sparks, a slow scan ring. Pure code, no assets. The lever
 // arcs orbit it as a thin data ring; the top lever floats in the core.
-function Orb() {
+function Orb({ agitation }) {
   const ref = React.useRef(null);
   useEffect(() => {
     const canvas = ref.current;
@@ -1483,19 +1498,20 @@ function Orb() {
       p: Math.random(),
     }));
     let raf = null, t = Math.random() * 10;
+    const ag = typeof agitation === "number" ? agitation : 0.3;
     const TAU = Math.PI * 2;
     const frame = () => {
       t += 0.016;
       ctx.clearRect(0, 0, S, S);
       ctx.globalCompositeOperation = "lighter";
-      const breathe = Math.sin(t * 1.3) * 3 + Math.sin(t * 0.47) * 2;
+      const breathe = Math.sin(t * (1.1 + ag * 1.4)) * (3 + ag * 3) + Math.sin(t * 0.47) * 2;
       let g = ctx.createRadialGradient(cx, cy, 10, cx, cy, 150);
       g.addColorStop(0, "rgba(225,20,20,0.26)");
       g.addColorStop(0.55, "rgba(225,20,20,0.06)");
       g.addColorStop(1, "rgba(225,20,20,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 150, 0, TAU); ctx.fill();
       g = ctx.createRadialGradient(cx, cy, 2, cx, cy, 58 + breathe);
-      g.addColorStop(0, "rgba(255,120,100,0.95)");
+      g.addColorStop(0, "rgba(255,120,100," + (0.95 - (ag > 0.7 ? Math.abs(Math.sin(t * 27)) * 0.22 : 0)).toFixed(2) + ")");
       g.addColorStop(0.35, "rgba(225,20,20,0.5)");
       g.addColorStop(1, "rgba(225,20,20,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 58 + breathe, 0, TAU); ctx.fill();
@@ -1513,7 +1529,7 @@ function Orb() {
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, 32, 0, TAU); ctx.fill();
       }
       for (const s of sparks) {
-        s.p += 0.006 * s.v;
+        s.p += (0.004 + 0.01 * ag) * s.v;
         if (s.p > 1) { s.p = 0; s.a = Math.random() * TAU; }
         const rr = 62 + s.p * 58;
         const sx = cx + Math.cos(s.a + t * 0.12) * rr;
@@ -1529,10 +1545,10 @@ function Orb() {
     if (REDUCED_MOTION) { t = 2.4; frame(); }
     else { const loop = () => { frame(); raf = requestAnimationFrame(loop); }; loop(); }
     return () => { if (raf) cancelAnimationFrame(raf); };
-  }, []);
+  }, [agitation]);
   return <canvas ref={ref} className="orb-canvas" aria-hidden="true" />;
 }
-function LeverWheel({ levers }) {
+function LeverWheel({ levers, agitation }) {
   if (!levers.length) return null;
   const total = levers.reduce((s, l) => s + l.value, 0);
   const max = levers[0].value;
@@ -1543,7 +1559,7 @@ function LeverWheel({ levers }) {
   const free = 360 - GAP * levers.length;
   return (
     <div className="orb-stage">
-      <Orb />
+      <Orb agitation={agitation} />
       <svg viewBox="0 0 200 200" className="wheel wheel-abs">
         <defs>
           <filter id="segglow" x="-30%" y="-30%" width="160%" height="160%">
@@ -1569,12 +1585,168 @@ function LeverWheel({ levers }) {
       </svg>
       <div className="orb-text">
         <div className="display ov">{fmtEuroK(levers[0].value)}</div>
-        <div className="mono ol">{levers[0].per === "mo" ? "per month \u00b7 top lever" : "one time \u00b7 top lever"}</div>
+        <div className="mono ol">{levers[0].per === "mo" ? "per month · top lever" : "one time · top lever"}</div>
         <div className="mono on">{levers[0].name}</div>
       </div>
     </div>
   );
 }
+/* ============================================================================
+   Palantir command block: one surface absorbing system health (status dots),
+   diagnosis (alerts channel), the strategy brief (directive cards) and the
+   weekly memo (log channel), with the reactive orb and lever power bars.
+============================================================================ */
+function healthZones(daily, replies, capacity) {
+  const s = computeSignals(daily, replies, capacity);
+  return [
+    { name: "Initials pace", zone: !daily.length ? "n" : s.paceRatio >= 0.9 ? "g" : s.paceRatio >= 0.6 ? "a" : "r",
+      detail: fmtInt(s.pace) + " a day vs " + fmtInt(capacity) },
+    { name: "Follow up ladder", zone: s.fuRatio === null ? "n" : s.fuRatio >= 0.85 ? "g" : s.fuRatio >= 0.55 ? "a" : "r",
+      detail: s.fuRatio === null ? "waiting on logged days" : "about " + fmtPct(Math.min(s.fuRatio, 1.5), 0) + " of ladder cadence, 14 days" },
+    { name: "Comment coverage", zone: s.commentRatio === null ? "n" : s.commentRatio >= 0.85 ? "g" : s.commentRatio >= 0.55 ? "a" : "r",
+      detail: s.commentRatio === null ? "no comments logged yet" : "about " + fmtPct(Math.min(s.commentRatio, 1.5), 0) + " of initials get a comment" },
+    { name: "Daily logging", zone: !daily.length ? "n" : s.loggedDays >= s.expectDays ? "g" : s.loggedDays >= s.expectDays - 2 ? "a" : "r",
+      detail: s.loggedDays + " of " + s.expectDays + " days logged, last week" },
+    { name: "Reply handling", zone: !replies.length ? "n" : s.stale === 0 ? "g" : s.stale <= 2 ? "a" : "r",
+      detail: s.stale === 0 ? "nothing waiting past 7 days" : s.stale + " unbooked past 7 days" },
+  ];
+}
+function TypeOn({ text }) {
+  const [n, setN] = useState(REDUCED_MOTION ? (text || "").length : 0);
+  useEffect(() => {
+    if (REDUCED_MOTION) { setN((text || "").length); return; }
+    setN(0);
+    let i = 0;
+    const id = setInterval(() => {
+      i += 3; setN(i);
+      if (i >= (text || "").length) clearInterval(id);
+    }, 22);
+    return () => clearInterval(id);
+  }, [text]);
+  return <span>{(text || "").slice(0, n)}{n < (text || "").length && <span className="cursor">▎</span>}</span>;
+}
+function PalantirCommand({ daily, replies, leads, m, calc }) {
+  const zones = healthZones(daily, replies, calc.capacity);
+  const fr = computeFindings(daily, replies, calc.capacity, m);
+  const levers = computeLevers(daily, replies, leads, m, calc);
+  const [tab, setTab] = useState("alerts");
+  const [dot, setDot] = useState(null);
+  const [openAlert, setOpenAlert] = useState(0);
+  const [openDir, setOpenDir] = useState(null);
+  const [openLog, setOpenLog] = useState(null);
+  const [openLever, setOpenLever] = useState(null);
+  const [brief, setBrief] = useState(null);
+  const [memo, setMemo] = useState(null);
+  useEffect(() => {
+    fetch("/dm-tracker/overseer.json?cb=" + Date.now())
+      .then((r) => (r.ok ? r.json() : null)).then((b) => { if (b && b.headline) setBrief(b); }).catch(() => {});
+    fetch("/dm-tracker/memo.json?cb=" + Date.now())
+      .then((r) => (r.ok ? r.json() : null)).then((x) => { if (x && x.headline) setMemo(x); }).catch(() => {});
+  }, []);
+  const reds = fr.findings.filter((f) => f.sev === "r").length + zones.filter((z) => z.zone === "r").length;
+  const ambers = fr.findings.filter((f) => f.sev === "a").length + zones.filter((z) => z.zone === "a").length;
+  const agitation = reds > 0 ? 1 : ambers > 0 ? 0.55 : 0.15;
+  const ZW = { g: "OK", a: "WARN", r: "FAIL", n: "NULL" };
+  const maxL = levers.length ? levers[0].value : 1;
+  const tabBtn = (id, label) => (
+    <button key={id} className={"btn" + (tab === id ? " active" : "")} onClick={() => setTab(id)}>{label}</button>
+  );
+  const dirCards = (sections, openIdx, setOpen, word) => (sections || []).map((s, i) => (
+    <div className="dir" key={i} onClick={() => setOpen(openIdx === i ? null : i)}>
+      <div className="dir-title"><span className="dnum">{word} {String(i + 1).padStart(2, "0")}</span> // {s.title.toUpperCase()}</div>
+      {openIdx === i && <div className="dir-body">{s.text}</div>}
+    </div>
+  ));
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+        <h2 className="sec" style={{ margin: 0 }}>Palantir</h2>
+        <span className="sysdots">
+          <span className="mono label">sys</span>
+          {zones.map((z, i) => (
+            <button key={i} className={"sysdot " + z.zone} title={z.name}
+              onClick={() => setDot(dot === i ? null : i)} aria-label={z.name} />
+          ))}
+        </span>
+        <span className="mono label">cash collected basis</span>
+      </div>
+      {dot !== null && (
+        <div className="dot-detail">{zones[dot].name.toUpperCase()} [{ZW[zones[dot].zone]}] · {zones[dot].detail}</div>
+      )}
+      <div className="pal-grid">
+        <div>
+          <LeverWheel levers={levers} agitation={agitation} />
+          <div className="lbars">
+            {levers.map((l, i) => (
+              <div className="lbar" key={i} onClick={() => setOpenLever(openLever === i ? null : i)}>
+                <div className="lbar-top">
+                  <span className="lever-rank">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="lbar-name">{l.name}</span>
+                  <span className="lbar-val display">{fmtEuroK(l.value)}<span className="lever-per"> {l.per === "mo" ? "/mo" : "1x"}</span></span>
+                </div>
+                <div className="lbar-track">
+                  <span className="lbar-fill" style={{ width: Math.max((l.value / maxL) * 100, 4) + "%", boxShadow: i === 0 ? "0 0 10px rgba(225,20,20,0.55)" : "none" }} />
+                </div>
+                {openLever === i && <div className="lbar-detail">{l.detail} · basis: {l.basis}</div>}
+              </div>
+            ))}
+          </div>
+          <div className="chart-note">Levers priced independently; they overlap and never sum. Baselines assumed until measured. Tap a lever for detail.</div>
+        </div>
+        <div className="console">
+          <div className="ptabs">
+            {tabBtn("alerts", "Alerts" + (fr.findings.length ? " · " + fr.findings.length : ""))}
+            {tabBtn("brief", "Brief")}
+            {tabBtn("log", "Log")}
+          </div>
+          {tab === "alerts" && (
+            <div>
+              {fr.findings.length === 0 && (
+                <div className="hzone hz-g" style={{ margin: 0 }}><span className="hdot" />No active alerts. Push volume, keep the ladder full.</div>
+              )}
+              {fr.findings.map((f, i) => (
+                <div className="alert-line" key={i}>
+                  <div className="alert-head" onClick={() => setOpenAlert(openAlert === i ? null : i)}>
+                    <span className={f.sev === "r" ? "sevr" : "seva"}>&gt;&gt; ALERT {String(i + 1).padStart(2, "0")}</span>
+                    <span>{f.title.toUpperCase()}</span>
+                    <span style={{ marginLeft: "auto", color: "#7A7A7A" }}>{openAlert === i ? "−" : "+"}</span>
+                  </div>
+                  {openAlert === i && (
+                    <div className="alert-body">{f.evidence}<div className="diag-lever" style={{ marginTop: 7 }}><span>Lever</span> {f.lever}</div></div>
+                  )}
+                </div>
+              ))}
+              {fr.waiting.length > 0 && (
+                <div className="chart-note">On mute until the sample can carry it: {fr.waiting.join("; ")}.</div>
+              )}
+            </div>
+          )}
+          {tab === "brief" && (brief ? (
+            <div>
+              <div className="mono label" style={{ marginBottom: 9 }}>Palantir brief · {brief.date}</div>
+              <div className="brief-head"><TypeOn text={brief.headline} /></div>
+              {dirCards(brief.sections, openDir, setOpenDir, "DIRECTIVE")}
+            </div>
+          ) : <div className="chart-note">No brief published yet.</div>)}
+          {tab === "log" && (memo ? (
+            <div>
+              <div className="mono label" style={{ marginBottom: 9 }}>Weekly memo · {memo.week}</div>
+              <div className="brief-head">{memo.headline}</div>
+              {dirCards(memo.sections, openLog, setOpenLog, "ENTRY")}
+              {(memo.archive || []).map((old, k) => (
+                <div className="dir" key={"a" + k} onClick={() => setOpenLog(openLog === "a" + k ? null : "a" + k)}>
+                  <div className="dir-title"><span className="dnum">ARCHIVE</span> // {String(old.week || old.date || "").toUpperCase()}</div>
+                  {openLog === "a" + k && <div className="dir-body">{old.headline}</div>}
+                </div>
+              ))}
+            </div>
+          ) : <div className="chart-note">No memo published yet.</div>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OverseerCard({ daily, replies, leads, m, calc }) {
   const levers = computeLevers(daily, replies, leads, m, calc);
   const [brief, setBrief] = useState(null);
@@ -2495,28 +2667,21 @@ function App() {
           sub={<span><b>{fmtEuro(m.outstanding)}</b> outstanding</span>} />
       </section>
 
-      {/* Rate gauges + system check, side by side on wide screens */}
-      <div className="grid2" style={{ marginBottom: 12 }}>
-        <div className="card">
-          <h2 className="sec">Rate Gauges, ring fills toward the strong target</h2>
-          <div className="gauges">
-            <Gauge label="Reply rate" value={m.replyRate} floor={KPI.replyRate[0]} strong={KPI.replyRate[1]}
-              sample={m.initials} sampleNeed={150} sampleUnit="initials" />
-            <Gauge label="Booking rate" value={m.bookingRate} floor={KPI.bookingRate[0]} strong={KPI.bookingRate[1]}
-              sample={m.replies} sampleNeed={10} sampleUnit="replies" />
-            <Gauge label="Show rate" value={m.showRate} floor={KPI.showRate[0]} strong={KPI.showRate[1]}
-              sample={m.booked} sampleNeed={5} sampleUnit="booked" />
-            <Gauge label="Close rate" value={m.closeRate} floor={KPI.closeRate[0]} strong={KPI.closeRate[1]}
-              sample={m.shown} sampleNeed={5} sampleUnit="shows" />
-          </div>
+      <PalantirCommand daily={daily || []} replies={replies || []} leads={leads} m={m} calc={calc} />
+
+      <div className="card" style={{ marginBottom: 12 }}>
+        <h2 className="sec">Rate Gauges, ring fills toward the strong target</h2>
+        <div className="gauges">
+          <Gauge label="Reply rate" value={m.replyRate} floor={KPI.replyRate[0]} strong={KPI.replyRate[1]}
+            sample={m.initials} sampleNeed={150} sampleUnit="initials" />
+          <Gauge label="Booking rate" value={m.bookingRate} floor={KPI.bookingRate[0]} strong={KPI.bookingRate[1]}
+            sample={m.replies} sampleNeed={10} sampleUnit="replies" />
+          <Gauge label="Show rate" value={m.showRate} floor={KPI.showRate[0]} strong={KPI.showRate[1]}
+            sample={m.booked} sampleNeed={5} sampleUnit="booked" />
+          <Gauge label="Close rate" value={m.closeRate} floor={KPI.closeRate[0]} strong={KPI.closeRate[1]}
+            sample={m.shown} sampleNeed={5} sampleUnit="shows" />
         </div>
-        <HealthBoard daily={daily || []} replies={replies || []} capacity={calc.capacity} />
       </div>
-      <Diagnosis daily={daily || []} replies={replies || []} capacity={calc.capacity} m={m} />
-
-      <OverseerCard daily={daily || []} replies={replies || []} leads={leads} m={m} calc={calc} />
-
-      <MemoPanel />
 
       <div className="grid2">
         <div>
