@@ -1,5 +1,13 @@
 {
-  "headline": "No calls read yet.",
+  "headline": "Kyle Cooke call read: 7 out of 10, deal parked on proof.",
   "updated": "2026-08-06",
-  "calls": []
+  "calls": [
+    {
+      "date": "2026-07-29",
+      "title": "Kyle Cooke, closing call",
+      "score": 7,
+      "read": "Strong discovery and clean objection isolation: the block is proof, not price, and the prospect accepted a 10k one pay outright. Two leaks: about 15 minutes of the mechanism taught for free mid call, and a payment split offered after the price had already landed. Follow up was booked inside 24 hours, which is right. The follow up loop is still open in the sheet; close it.",
+      "fix": "Build the proof vault before the next pitch this size: interviews plus fresh selfie testimonials in one Drive folder, sent within the hour of any call that asks."
+    }
+  ]
 }
