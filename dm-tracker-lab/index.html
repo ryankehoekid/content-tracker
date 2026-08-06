@@ -512,7 +512,7 @@ const AUTO_REFRESH_MS = 5 * 60 * 1000; // re-pull the sheet every 5 minutes
 // norms. Edit to internal targets, the engine reads them live.
 const KPI = {
   replyRate: [0.03, 0.06],
-  bookingRate: [0.25, 0.40],
+  bookingRate: [0.125, 0.25],
   showRate: [0.60, 0.80],
   closeRate: [0.15, 0.30],
 };
@@ -1032,6 +1032,14 @@ function LoadForecast({ daily, leads }) {
 
   // Preferred source: the per lead scheduler sheet, the real queue.
   const active = leads.filter((l) => l.nextDue && l.status.toLowerCase() !== "replied");
+  if (active.length > 0 && leadsStandby(leads)) {
+    return (
+      <div className="card">
+        <h2 className="sec">Follow Up Queue, standing by</h2>
+        <div className="chart-note">The lead scheduler is parked until accounts 2 and 3 land; its dates are intentionally not being worked, so nothing here scores as overdue. It re-arms automatically when the dates start moving again. {fmtInt(active.length)} leads loaded and waiting.</div>
+      </div>
+    );
+  }
   if (active.length > 0) {
     const overdue = active.filter((l) => l.nextDue < today).length;
     const dueToday = active.filter((l) => dayKey(l.nextDue) === dayKey(today)).length;
@@ -1443,6 +1451,18 @@ function MemoPanel() {
 function fmtEuroK(v) {
   return v >= 1000 ? "\u20ac" + (v / 1000).toFixed(1) + "k" : fmtEuro(v);
 }
+// Lead scheduler standby: intentionally parked until accounts 2 and 3 land
+// (Ryan doctrine, 2026-08-06). Fully frozen dates are not a failure; the
+// queue re-arms the day the dates move again.
+function leadsStandby(leads) {
+  const active = leads.filter((l) => l.nextDue && l.status.toLowerCase() !== "replied");
+  if (!active.length) return false;
+  const nowS = new Date();
+  const todayS = new Date(nowS.getFullYear(), nowS.getMonth(), nowS.getDate());
+  const newest = Math.max(...active.map((l) => l.nextDue.getTime()));
+  const overdue = active.filter((l) => l.nextDue < todayS).length;
+  return overdue === active.length && newest < todayS.getTime() - 3 * DAY_MS;
+}
 function computeLevers(daily, replies, leads, m, calc) {
   const s = computeSignals(daily, replies, calc.capacity);
   const now = new Date();
@@ -1485,7 +1505,8 @@ function computeLevers(daily, replies, leads, m, calc) {
       detail: s.stale + " replies past 7 days unbooked.",
       basis: "hypothesis" });
   }
-  const overdue = leads.filter((l) => l.nextDue && l.status.toLowerCase() !== "replied" && l.nextDue < today).length;
+  const overdue = leadsStandby(leads) ? 0
+    : leads.filter((l) => l.nextDue && l.status.toLowerCase() !== "replied" && l.nextDue < today).length;
   if (overdue > 0) {
     L.push({ name: "Clear the overdue queue", per: "one time",
       value: overdue * rr * br * sr * cr * aov,

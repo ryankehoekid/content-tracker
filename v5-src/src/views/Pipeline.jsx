@@ -1,7 +1,7 @@
 import React from "react";
 import { KPI, DAY_MS } from "../core/config.js";
 import { fmtInt, fmtEuro, fmtPct, dayKey, shortDate } from "../core/format.js";
-import { displayName, parseReplyHour, TIME_BANDS, meanReplyTime, speedToBook, upcomingCalls, lossReasons, accountSplit } from "../core/metrics.js";
+import { displayName, parseReplyHour, TIME_BANDS, meanReplyTime, speedToBook, upcomingCalls, lossReasons, accountSplit, leadsStandby } from "../core/metrics.js";
 import { Reveal } from "../ui/atoms.jsx";
 
 const C = { red: "#E11414", bone: "#F4F2ED", steel: "#7A7A7A" };
@@ -331,6 +331,14 @@ function Queue({ daily, leads }) {
     </div>
   );
   const active = leads.filter((l) => l.nextDue && l.status.toLowerCase() !== "replied");
+  if (active.length > 0 && leadsStandby(leads)) {
+    return (
+      <div className="card">
+        <h2 className="sec">Follow Up Queue, standing by</h2>
+        <div className="note">The lead scheduler is parked until accounts 2 and 3 land; its dates are intentionally not being worked right now, so nothing here scores as overdue. The queue re-arms automatically the day the dates start moving again. {fmtInt(active.length)} leads loaded and waiting.</div>
+      </div>
+    );
+  }
   if (active.length > 0) {
     const overdue = active.filter((l) => l.nextDue < today).length;
     const dueToday = active.filter((l) => dayKey(l.nextDue) === dayKey(today)).length;

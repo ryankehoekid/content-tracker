@@ -28,10 +28,12 @@ export const FALLBACK_BOOKING_RATE = 0.30;
 export const AUTO_REFRESH_MS = 5 * 60 * 1000;
 export const COMMISSION_RATE = 0.075; // setter rev share on collected cash
 
-// KPI bands: [floor, strong]. Cold IG DM norms.
+// KPI bands: [floor, strong]. Seeded with cold IG DM norms; booking floor
+// set by Ryan at 12.5% (2026-08-06): at target volume, 25% of replies
+// booked would be an implausible call load, 12.5% is the honest bar.
 export const KPI = {
   replyRate: [0.03, 0.06],
-  bookingRate: [0.25, 0.40],
+  bookingRate: [0.125, 0.25],
   showRate: [0.60, 0.80],
   closeRate: [0.15, 0.30],
 };
