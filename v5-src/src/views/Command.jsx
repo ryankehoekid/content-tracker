@@ -3,15 +3,16 @@ import { KPI, DAY_MS, FALLBACK_REPLY_RATE, FALLBACK_BOOKING_RATE } from "../core
 import { fmtInt, fmtEuro, fmtEuroK, fmtPct, fmtNum, safeDiv, dayKey, shortDate } from "../core/format.js";
 import {
   healthZones, computeFindings, computeLevers, weekOverWeek, weeklySums,
-  computeProjection, forecastBands,
+  computeProjection, forecastBands, cashModel,
 } from "../core/metrics.js";
 import { usePublished } from "../core/useData.js";
 import { CountUp, Tile, TypeOn, Reveal } from "../ui/atoms.jsx";
 import PalantirOrb from "../orb/PalantirOrb.jsx";
 
-function Hero({ daily, replies, m, calc }) {
-  const proj = computeProjection(daily, replies, m, calc);
-  const bands = useMemo(() => forecastBands(daily, replies, m, calc), [daily, replies, m, calc]);
+function Hero({ daily, replies, payments, m, calc }) {
+  const cm = cashModel(replies, payments);
+  const proj = computeProjection(daily, replies, m, calc, cm.mtd);
+  const bands = useMemo(() => forecastBands(daily, replies, m, calc, cm.mtd), [daily, replies, m, calc, cm.mtd]);
   const goalPct = Math.min(safeDiv(proj.cashMTD, calc.goal), 1);
   const now = new Date();
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -47,8 +48,8 @@ function Hero({ daily, replies, m, calc }) {
       </Reveal>
       <Reveal className="card" delay={120}>
         <div className="label">Cash collected, all time</div>
-        <div className="display hnum"><CountUp value={m.cash} format={fmtEuro} /></div>
-        <div className="hsub">{fmtEuro(m.dealValue)} signed · {fmtEuro(m.outstanding)} outstanding</div>
+        <div className="display hnum"><CountUp value={cm.all} format={fmtEuro} /></div>
+        <div className="hsub">{fmtEuro(m.dealValue)} signed · {fmtEuro(Math.max(m.dealValue - cm.all, 0))} outstanding{cm.source === "payments" ? " · payments tab" : ""}</div>
       </Reveal>
       <Reveal className="card" delay={180}>
         <div className="label">Time to goal, {fmtInt(calc.capacity)} a day</div>
@@ -239,10 +240,10 @@ function Palantir({ daily, replies, leads, m, calc }) {
   );
 }
 
-export default function Command({ daily, replies, leads, m, calc }) {
+export default function Command({ daily, replies, leads, payments, m, calc }) {
   return (
     <div>
-      <Hero daily={daily} replies={replies} m={m} calc={calc} />
+      <Hero daily={daily} replies={replies} payments={payments} m={m} calc={calc} />
       <Tiles daily={daily} replies={replies} m={m} />
       <Palantir daily={daily} replies={replies} leads={leads} m={m} calc={calc} />
     </div>

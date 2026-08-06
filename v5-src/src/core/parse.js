@@ -118,6 +118,13 @@ export function parseReplies(csvText) {
     plan: colIndex(H, "payment plan", "plan"),
     notes: colIndex(H, "notes", "note"),
     time: colIndex(H, "time replied", "time"),
+    // Phase 1 event columns; all optional, tolerated when absent.
+    status: colIndex(H, "status"),
+    deadReason: colIndex(H, "dead reason"),
+    account: colIndex(H, "account"),
+    dateBooked: colIndex(H, "date booked"),
+    callDate: colIndex(H, "call date"),
+    dateClosed: colIndex(H, "date closed"),
   };
   const body = rows.slice(h + 1).filter((r) => !isJunkRow(r));
   const parseDate = makeDateParser(body.map((r) => r[ci.date]));
@@ -125,22 +132,48 @@ export function parseReplies(csvText) {
   for (const r of body) {
     const date = parseDate(r[ci.date]);
     if (!date) continue;
+    const status = String(r[ci.status] || "").trim();
+    const dateBooked = parseDate(r[ci.dateBooked]);
+    const dateClosed = parseDate(r[ci.dateClosed]);
     out.push({
       date,
       handle: String(r[ci.handle] || "").trim(),
       name: String(r[ci.name] || "").trim(),
-      booked: toBool(r[ci.booked]),
+      // The Y flag, the Status dropdown and the event date all mean the same
+      // thing; any one of them marks the stage so a missed checkbox cannot
+      // hide a booked call or a close.
+      booked: toBool(r[ci.booked]) || status.toLowerCase() === "booked" || !!dateBooked,
       showed: toBool(r[ci.showed]),
-      closed: toBool(r[ci.closed]),
+      closed: toBool(r[ci.closed]) || !!dateClosed,
       dealValue: toNumber(r[ci.dealValue]),
       cash: toNumber(r[ci.cash]),
       paymentPlan: toBool(r[ci.plan]),
       notes: String(r[ci.notes] || "").trim(),
       timeReplied: ci.time !== -1 ? String(r[ci.time] || "").trim() : "",
+      status,
+      dead: status.toLowerCase() === "dead",
+      deadReason: String(r[ci.deadReason] || "").trim(),
+      account: String(r[ci.account] || "").trim(),
+      dateBooked,
+      // Call dates are legitimately in the future; no year rollback.
+      callDate: parseFutureDate(r[ci.callDate]),
+      dateClosed,
     });
   }
   out.sort((a, b) => a.date - b.date);
   return out;
+}
+
+// Dates allowed to be in the future (lead due dates, call dates), so no
+// year rollback here; strict formats only.
+function parseFutureDate(s) {
+  const str = String(s || "").trim();
+  if (!str) return null;
+  let m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = str.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+  if (m) { let y = +m[3]; if (y < 100) y += 2000; return new Date(y, +m[2] - 1, +m[1]); }
+  return null;
 }
 
 // Lead scheduler dates are allowed to be in the future (that is the point),
@@ -187,7 +220,37 @@ export function parseLeads(csvText) {
   return out;
 }
 
-/* Sample data, used only when the live feed is unreachable. Mimics the real
+/* Payments tab: one row per payment the day money lands. The truth source
+   for monthly cash once it carries rows; reply-row cash stays the fallback. */
+export function parsePayments(csvText) {
+  const rows = Papa.parse(csvText, { skipEmptyLines: false }).data;
+  const h = findHeaderRow(rows, ["date", "amount"]);
+  if (h === -1) throw new Error("Payments: header row not found.");
+  const H = rows[h];
+  const ci = {
+    date: colIndex(H, "date"),
+    handle: colIndex(H, "handle"),
+    amount: colIndex(H, "amount"),
+    notes: colIndex(H, "notes", "note"),
+  };
+  const body = rows.slice(h + 1).filter((r) => !isJunkRow(r));
+  const parseDate = makeDateParser(body.map((r) => r[ci.date]));
+  const out = [];
+  for (const r of body) {
+    const date = parseDate(r[ci.date]);
+    const amount = toNumber(r[ci.amount]);
+    if (!date || !(amount > 0)) continue;
+    out.push({
+      date, amount,
+      handle: String(r[ci.handle] || "").trim(),
+      notes: String(r[ci.notes] || "").trim(),
+    });
+  }
+  out.sort((a, b) => a.date - b.date);
+  return out;
+}
+
+/* Sample data, used only while the live feed is unreachable. Mimics the real
    sheet layout including the header block and example row, so it exercises
    the exact same parser as live data. */
 export function buildSampleCsvs() {
@@ -199,10 +262,15 @@ export function buildSampleCsvs() {
     "01/01/2026,Example Setter,25,10,20,Example row - ignore",
   ];
   const replies = [
-    "KEHOEGROUP Replies,,,,,,,,,",
-    "One row per person who replied,,,,,,,,,",
-    "Date Replied,Handle,Name,Time Replied,Booked,Showed,Closed,Deal Value,Cash Collected,Payment Plan,Notes",
-    "01/01/2026,@example,Example Person,12:00,Y,Y,Y,10000,5000,Y,Example row - ignore",
+    "KEHOEGROUP Replies,,,,,,,,,,,,,,,,",
+    "One row per person who replied,,,,,,,,,,,,,,,,",
+    "Date Replied,Handle,Name,Time Replied,Booked,Showed,Closed,Deal Value,Cash Collected,Payment Plan,Notes,Status,Dead Reason,Account,Date Booked,Call Date,Date Closed",
+    "01/01/2026,@example,Example Person,12:00,Y,Y,Y,10000,5000,Y,Example row - ignore,,,,,,",
+  ];
+  const payments = [
+    "KEHOEGROUP Payments,,,",
+    "One row per payment received,,,",
+    "Date,Handle,Amount,Notes",
   ];
   const dmy = (d) => {
     const p = (x) => String(x).padStart(2, "0");
@@ -235,11 +303,25 @@ export function buildSampleCsvs() {
       const cash = closed ? (plan ? deal / 2 : deal) : 0;
       const hr = 13 + Math.floor(rnd() * 11);
       const time = String(hr % 24).padStart(2, "0") + ":" + String(Math.floor(rnd() * 60)).padStart(2, "0");
+      // Phase 1 event columns in the sample so every new code path renders:
+      // dead leads with reasons, statuses, account tags, stage dates.
+      const isDead = !booked && back > 14 && rnd() < 0.3;
+      const status = isDead ? "Dead" : booked ? "Booked" : back < 5 && rnd() < 0.5 ? "Talking" : "";
+      const deadReason = isDead ? ["Ghosted", "No money", "Bad fit", "Priced out"][Math.floor(rnd() * 4)] : "";
+      const dBooked = booked ? dmy(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) : "";
+      const dCall = booked && !showed && back < 4
+        ? dmy(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1 + Math.floor(rnd() * 3)))
+        : booked ? dmy(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 3)) : "";
+      const dClosed = closed ? dmy(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 18)) : "";
       replies.push([dmy(d), handle, "", time, booked ? "Y" : "", showed ? "Y" : "",
-        closed ? "Y" : "", deal || "", cash || "", plan ? "Y" : "", ""].join(","));
+        closed ? "Y" : "", deal || "", cash || "", plan ? "Y" : "", "",
+        status, deadReason, "Acc 1", dBooked, dCall, dClosed].join(","));
+      if (closed && cash > 0) {
+        payments.push([dClosed, handle, cash, plan ? "first payment" : "paid in full"].join(","));
+      }
     }
   }
-  return { daily: daily.join("\n"), replies: replies.join("\n") };
+  return { daily: daily.join("\n"), replies: replies.join("\n"), payments: payments.join("\n") };
 }
 
 export function sampleLeadsCsv() {

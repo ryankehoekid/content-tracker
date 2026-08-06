@@ -221,6 +221,9 @@ body::after {
 .chip.booked { color: var(--bone); border-color: #3A3A3A; }
 .chip.shown { color: var(--amber); border-color: rgba(201,162,39,0.4); }
 .chip.closed { color: var(--red); border-color: rgba(225,20,20,0.55); }
+.chip.talking { color: var(--teal); border-color: rgba(62,193,187,0.35); }
+.chip.dead { color: var(--steel-dim); border-color: #242424; }
+.pipe-row.is-dead .pipe-name { color: var(--steel-dim); text-decoration: line-through; text-decoration-color: rgba(122,122,122,0.5); }
 .age { font-family: 'Space Mono', monospace; font-size: 9.5px; color: var(--steel-dim); flex: none; }
 .age.aging { color: var(--amber); }
 .age.stale { color: var(--red); font-weight: 700; }

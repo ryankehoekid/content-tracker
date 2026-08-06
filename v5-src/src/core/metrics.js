@@ -67,7 +67,11 @@ export function computeSignals(daily, replies, capacity) {
     if (byDay.has(dayKey(d))) loggedDays++;
   }
 
+  // Stale honors the Status column: Dead leads leave the pipeline, and a
+  // lead marked Talking is being worked, not neglected (Ryan doctrine: the
+  // follow ups happen, they are just not event-logged).
   const stale = replies.filter((r) => !r.booked && !r.showed && !r.closed
+    && !r.dead && String(r.status || "").toLowerCase() !== "talking"
     && (today - r.date) / DAY_MS > 7).length;
 
   const cut14 = new Date(today.getTime() - 13 * DAY_MS);
@@ -372,19 +376,88 @@ export function meanReplyTime(hours) {
   return String(hh % 24).padStart(2, "0") + ":" + String(mm % 60).padStart(2, "0");
 }
 
+/* Cash truth: once the Payments tab carries rows it becomes the source for
+   when money landed (reply-row cash cannot place a September instalment in
+   September). Reply-row cash stays the fallback and the all-time floor. */
+export function cashModel(replies, payments) {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const repliesAll = replies.reduce((s, r) => s + r.cash, 0);
+  if (!payments || !payments.length) {
+    return {
+      source: "replies",
+      all: repliesAll,
+      mtd: replies.filter((r) => r.date >= monthStart).reduce((s, r) => s + r.cash, 0),
+    };
+  }
+  const payAll = payments.reduce((s, p) => s + p.amount, 0);
+  return {
+    source: "payments",
+    // All-time takes the larger of the two records so a payment logged only
+    // on the reply row is never lost while the tab backfills.
+    all: Math.max(payAll, repliesAll),
+    mtd: payments.filter((p) => p.date >= monthStart).reduce((s, p) => s + p.amount, 0),
+    mismatch: Math.abs(payAll - repliesAll) > 1 ? { payAll, repliesAll } : null,
+  };
+}
+
+/* Reply-to-booked velocity, from the Date Booked column. */
+export function speedToBook(replies) {
+  const lags = replies
+    .filter((r) => r.dateBooked && r.date && r.dateBooked >= r.date)
+    .map((r) => Math.round((r.dateBooked - r.date) / DAY_MS));
+  if (!lags.length) return null;
+  lags.sort((a, b) => a - b);
+  return {
+    n: lags.length,
+    median: lags[Math.floor(lags.length / 2)],
+    within24h: lags.filter((d) => d <= 1).length / lags.length,
+  };
+}
+
+export function upcomingCalls(replies) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return replies
+    .filter((r) => r.callDate && !r.closed && !r.dead && r.callDate >= today && !r.showed)
+    .sort((a, b) => a.callDate - b.callDate)
+    .slice(0, 8);
+}
+
+export function lossReasons(replies) {
+  const dead = replies.filter((r) => r.dead);
+  const counts = new Map();
+  dead.forEach((r) => {
+    const k = r.deadReason || "Unspecified";
+    counts.set(k, (counts.get(k) || 0) + 1);
+  });
+  return { total: dead.length, reasons: [...counts.entries()].sort((a, b) => b[1] - a[1]) };
+}
+
+export function accountSplit(replies) {
+  const tagged = replies.filter((r) => r.account);
+  if (!tagged.length) return null;
+  const counts = new Map();
+  tagged.forEach((r) => counts.set(r.account, (counts.get(r.account) || 0) + 1));
+  return { tagged: tagged.length, total: replies.length,
+    accounts: [...counts.entries()].sort((a, b) => b[1] - a[1]) };
+}
+
 /* Month-end projection: banked cash, plus the open pipeline weighted by
    stage, plus remaining sends this month damped hard for close lag. */
-export function computeProjection(daily, replies, m, calc) {
+export function computeProjection(daily, replies, m, calc, cashMTDOverride) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const cashMTD = replies.filter((r) => r.date >= monthStart).reduce((s, r) => s + r.cash, 0);
+  const cashMTD = cashMTDOverride !== undefined && cashMTDOverride !== null
+    ? cashMTDOverride
+    : replies.filter((r) => r.date >= monthStart).reduce((s, r) => s + r.cash, 0);
   const rr = m.replyRate > 0 ? m.replyRate : FALLBACK_REPLY_RATE;
   const br = m.bookingRate > 0 ? m.bookingRate : FALLBACK_BOOKING_RATE;
   let pipe = 0;
   replies.forEach((r) => {
-    if (r.closed) return;
+    if (r.closed || r.dead) return;
     if (r.showed) pipe += calc.closeRate * calc.aov;
     else if (r.booked) pipe += calc.showRate * calc.closeRate * calc.aov;
     else pipe += br * calc.showRate * calc.closeRate * calc.aov;
@@ -402,11 +475,11 @@ export function computeProjection(daily, replies, m, calc) {
 /* Forecast bands: a small Monte Carlo over the rest of the month. Seeded from
    the data itself so the same snapshot always draws the same band (no flicker
    between refreshes). Wide bands are the honest output of a thin sample. */
-export function forecastBands(daily, replies, m, calc) {
-  const p = computeProjection(daily, replies, m, calc);
+export function forecastBands(daily, replies, m, calc, cashMTDOverride) {
+  const p = computeProjection(daily, replies, m, calc, cashMTDOverride);
   const rr = m.replyRate > 0 ? m.replyRate : FALLBACK_REPLY_RATE;
   const br = m.bookingRate > 0 ? m.bookingRate : FALLBACK_BOOKING_RATE;
-  const open = replies.filter((r) => !r.closed);
+  const open = replies.filter((r) => !r.closed && !r.dead);
   const seed = 1 + m.initials * 7 + m.replies * 131 + Math.round(m.cash) * 17;
   let s = seed % 2147483647; if (s <= 0) s += 2147483646;
   const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
@@ -477,14 +550,19 @@ export function computeAnomalies(daily, replies, leads, capacity) {
   }
 
   // Fresh replies needing action inside 24h (speed to lead doctrine)
-  const fresh = replies.filter((r) => !r.booked && !r.closed && (today - r.date) / DAY_MS <= 1).length;
+  const fresh = replies.filter((r) => !r.booked && !r.closed && !r.dead && (today - r.date) / DAY_MS <= 1).length;
   if (fresh > 0) {
     out.push({ sev: "a", text: fresh + (fresh === 1 ? " live reply" : " live replies") + " in the last 24h. Work them now" });
   }
 
-  // Stale Tier 1
-  const stale = replies.filter((r) => !r.booked && !r.showed && !r.closed && (today - r.date) / DAY_MS > 7).length;
+  // Stale Tier 1: Dead is out of the pipeline, Talking is being worked
+  const stale = replies.filter((r) => !r.booked && !r.showed && !r.closed && !r.dead
+    && String(r.status || "").toLowerCase() !== "talking" && (today - r.date) / DAY_MS > 7).length;
   if (stale > 0) out.push({ sev: "a", text: stale + " unbooked past 7 days" });
+
+  // Calls on the books
+  const calls = replies.filter((r) => r.callDate && !r.closed && !r.dead && !r.showed && r.callDate >= today).length;
+  if (calls > 0) out.push({ sev: "g", text: calls + (calls === 1 ? " call" : " calls") + " on the books" });
 
   // Comment coverage collapse on the latest day
   const anyC = daily.some((r) => r.comments > 0);
