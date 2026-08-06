@@ -214,6 +214,8 @@ function Palantir({ daily, replies, leads, m, calc, flare }) {
   const brief = usePublished("overseer");
   const memo = usePublished("memo");
   const dailyBrief = usePublished("brief");
+  const callsDoc = usePublished("calls");
+  const [openCall, setOpenCall] = useState(null);
 
   const reds = fr.findings.filter((f) => f.sev === "r").length + zones.filter((z) => z.zone === "r").length;
   const ambers = fr.findings.filter((f) => f.sev === "a").length + zones.filter((z) => z.zone === "a").length;
@@ -290,10 +292,29 @@ function Palantir({ daily, replies, leads, m, calc, flare }) {
             {tabBtn("alerts", "Alerts" + (fr.findings.length ? " · " + fr.findings.length : ""))}
             {tabBtn("ask", "Ask")}
             {tabBtn("daily", "Daily")}
+            {tabBtn("calls", "Calls" + (callsDoc && callsDoc.calls && callsDoc.calls.length ? " · " + callsDoc.calls.length : ""))}
             {tabBtn("brief", "Brief")}
             {tabBtn("log", "Log")}
           </div>
           {tab === "ask" && <AskConsole />}
+          {tab === "calls" && (callsDoc && callsDoc.calls && callsDoc.calls.length ? (
+            <div>
+              <div className="label" style={{ marginBottom: 9 }}>Call intelligence · updated {callsDoc.updated}</div>
+              {callsDoc.calls.map((c, i) => (
+                <div className="dir" key={i} onClick={() => setOpenCall(openCall === i ? null : i)}>
+                  <div className="dir-title">
+                    <span className="dnum">CALL {String(c.date || "").toUpperCase()}</span> // {String(c.title || "").toUpperCase()}
+                    {c.score != null && <span className="call-score">{c.score}/10</span>}
+                  </div>
+                  {openCall === i && (
+                    <div className="dir-body">{c.read}{c.fix ? " Biggest fix: " + c.fix : ""}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="note">No calls read yet. Drop the transcript TEXT (a Fathom transcript pasted into a Google Doc, or the exported .docx) into a Drive folder named KEHOEGROUP Calls, or name the doc starting with CALL. The morning run reads every new one: objections, doctrine compliance, a score out of 10 and the single biggest fix land here. Video files alone cannot be read; it needs the transcript.</div>
+          ))}
           {tab === "alerts" && (
             <div>
               {fr.findings.length === 0 && (
