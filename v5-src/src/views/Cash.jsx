@@ -144,8 +144,10 @@ function Planning({ calc, setCalc, m }) {
   const [open, setOpen] = useState(false);
   const { goal, deal, aov, showRate, closeRate, capacity, sendDays } = calc;
   const set = (k) => (v) => setCalc({ ...calc, [k]: v });
-  const rr = m.replyRate > 0 ? m.replyRate : FALLBACK_REPLY_RATE;
-  const br = m.bookingRate > 0 ? m.bookingRate : FALLBACK_BOOKING_RATE;
+  const liveRR = m.replyRate > 0 ? m.replyRate : FALLBACK_REPLY_RATE;
+  const liveBR = m.bookingRate > 0 ? m.bookingRate : FALLBACK_BOOKING_RATE;
+  const rr = calc.replyRate != null ? calc.replyRate : liveRR;
+  const br = calc.bookingRate != null ? calc.bookingRate : liveBR;
   const clientsNeeded = safeDiv(goal, aov);
   const callsToShow = safeDiv(clientsNeeded, closeRate);
   const callsToBook = safeDiv(callsToShow, showRate);
@@ -178,6 +180,27 @@ function Planning({ calc, setCalc, m }) {
       {hint && <div className="hint">{hint}</div>}
     </div>
   );
+  /* Reply and booking follow the live sheets until dragged; the badge toggles
+     back to live. Lets the console answer "what if we hit the KPI" questions. */
+  const rateSlider = (label, key, liveVal, min, max, step, hint) => {
+    const manual = calc[key] != null;
+    const val = manual ? calc[key] : liveVal;
+    return (
+      <div className="field">
+        <label className="label">
+          {label}{" "}
+          <button className="badge-btn" title={manual ? "back to live" : "drag the slider to override"}
+            onClick={() => set(key)(manual ? null : val)}>
+            <Badge kind={manual ? "manual" : "live"}>{manual ? "Manual" : "Live"}</Badge>
+          </button>
+          <span className="rate-val" style={{ float: "right" }}>{fmtPct(val)}</span>
+        </label>
+        <input type="range" min={min} max={max} step={step} value={val}
+          onChange={(e) => set(key)(parseFloat(e.target.value))} />
+        {hint && <div className="hint">{hint}</div>}
+      </div>
+    );
+  };
   const chainRow = (label, val, note) => (
     <div className="chain-row">
       <div>
@@ -205,6 +228,8 @@ function Planning({ calc, setCalc, m }) {
             {numField("Deal value (€)", deal, set("deal"), 1000, "Full contract for the signed-revenue view.")}
             {numField("Capacity, initials a day", capacity, set("capacity"), 5, "One warmed account sends about 100 a day before block risk.")}
             {numField("Send days a month", sendDays, set("sendDays"), 1)}
+            {rateSlider("Reply rate", "replyRate", liveRR, 0.005, 0.1, 0.0025)}
+            {rateSlider("Booking rate", "bookingRate", liveBR, 0.05, 0.7, 0.005, "KPI baseline 35%.")}
             {slider("Show rate", showRate, set("showRate"), 0.3, 1, 0.005)}
             {slider("Close rate", closeRate, set("closeRate"), 0.05, 0.5, 0.005)}
           </div>
@@ -213,8 +238,8 @@ function Planning({ calc, setCalc, m }) {
             {chainRow("Contract revenue", fmtEuro(clientsNeeded * deal), "at full deal value")}
             {chainRow("Shows needed", fmtNum(callsToShow, 1))}
             {chainRow("Calls to book", fmtNum(callsToBook, 1))}
-            {chainRow("Replies needed", fmtNum(repliesNeeded, 0), fmtPct(br) + " booking" + (m.bookingRate > 0 ? ", live" : ", assumed"))}
-            {chainRow("Initials needed", fmtNum(initialsNeeded, 0), fmtPct(rr) + " reply" + (m.replyRate > 0 ? ", live" : ", assumed"))}
+            {chainRow("Replies needed", fmtNum(repliesNeeded, 0), fmtPct(br) + " booking" + (calc.bookingRate != null ? ", manual" : m.bookingRate > 0 ? ", live" : ", assumed"))}
+            {chainRow("Initials needed", fmtNum(initialsNeeded, 0), fmtPct(rr) + " reply" + (calc.replyRate != null ? ", manual" : m.replyRate > 0 ? ", live" : ", assumed"))}
             {chainRow("Time to goal", timeToGoal || "--", "at " + fmtInt(capacity) + " a day, " + fmtInt(sendDays) + " send days a month")}
             {chainRow("Month supported by capacity", fmtEuro(capCash), fmtPct(safeDiv(capCash, goal), 0) + " of goal")}
           </div>
