@@ -1,14 +1,14 @@
 {
-  "date": "2026-08-07",
-  "headline": "Twelve replies, one booked. The month's cash is EUR 0 and the constraint is booking, not volume.",
+  "date": "2026-08-08",
+  "headline": "MCP daniel replied at 17:30 and was booked by 18:00. That is what speed to lead looks like. Booking rate 14.3 percent, bar is 35.",
   "sections": [
     {
       "title": "Do today",
-      "text": "Work the reply queue before anything else. Junior, Arman and Andy replied yesterday afternoon and have no status; Ryan, rahul and Caleb are two days old; cblez, Adam and Matt older still. Nine conversations, push each toward a booked call and tag its Status. Also: yesterday has no EOD row, log it."
+      "text": "Two things on Daniel: his row has no Call Date and no Date Booked, write them in so the call gets confirmed and tracked. Then the queue: Paul Denniston replied yesterday 14:46 and is still untagged, work him first, then the other nine blank-status replies (Junior, Arman, Andy, Ryan rosengren, rahul, Caleb, Adam, Matt, cblez)."
     },
     {
       "title": "Watch",
-      "text": "Booking rate, MEASURED 8.3 percent (1 of 12) against the 35 percent baseline. Eleven open replies owe roughly 4 booked calls at baseline. Second watch item: the Aug 3 note about account problems; volume is averaging 71 a day against 100."
+      "text": "Booking rate, MEASURED 14.3 percent (2 of 14) against the 35 percent baseline. Ten untagged replies owe roughly 3 more booked calls at baseline. Volume yesterday 60 initials against 100."
     }
   ]
 }
