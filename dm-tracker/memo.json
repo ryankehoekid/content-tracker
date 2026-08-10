@@ -1,31 +1,60 @@
 {
-  "date": "2026-08-05",
-  "week": "Jul 30 - Aug 5",
-  "headline": "The constraint is the message, not the machine. Ladder at 6.2 follow ups per initial, comments at 96% coverage, logging 6 for 6, yet reply rate sits at 1.2% on 642 sends. Check the flagged IG account before touching copy.",
+  "date": "2026-08-10",
+  "week": "Aug 3 - Aug 9",
+  "headline": "Replies went from 2 to 11 in one week. One got booked. The constraint moved to the reply queue, and the month is still EUR 0.",
   "sections": [
     {
       "title": "Binding constraint",
-      "text": "Execution went from suspect to clean this week, so the 1.2% all time reply rate (4 replies on 413 sends this week, about 1.0%) is now legitimately a first touch problem against a 3% floor. Before rewriting the opener, rule out deliverability: the Aug 3 EOD note says the first account has problems, and a throttled account produces exactly this signature. Account health check first, then rotate the opener."
+      "text": "Booking, in causal order. Volume held at 69 percent of the 100 a day plan (412 initials over 6 send days, avg 69, block signs in the Aug 3 note), but the week's real break is above it: 11 positive replies came in and only MCP daniel got booked, a 9.1 percent week booking rate against the 35 percent baseline. Eleven open conversations carry no Status at all. The lever is working the queue to a tag: Booked, Talking, Waiting or Dead, nothing left blank."
     },
     {
       "title": "Week over week",
-      "text": "Initials 413 vs 229 (+80%). Follow ups 2,549 vs 818 (+212%). Comments 395 logged, about 96% of initials. Replies 4 vs 4: volume nearly doubled, replies flat, which reinforces the constraint above. Booked 0 this week, shown 0, closed 0, cash EUR 0. Daily pace about 69 initials vs the 100 target."
+      "text": "Initials 412 vs 413, flat. Follow ups 2,138 vs 2,465, down 13 percent. Comments 392 vs 395, flat, 95 percent coverage. Replies 11 vs 2, up 5.5x, week reply rate 2.7 percent vs 0.5, nearly at the 3 percent floor. Booked 1 vs 0. Shown 0. Closed 0. Cash EUR 0 vs EUR 0. All time: 15 replies, 2 booked (13.3 percent), 1 shown, 0 closed."
     },
     {
-      "title": "Pipeline",
-      "text": "Three Tier 1 replies are stale past 7 days unbooked: Owen the ai guy (10d), mrplusmoney (9d), cblez (9d). Adam and Matt are at 2 days. Ryan and rahul replied within the last day and are live conversations right now. Booking sits at 1 of 8 replies; two more replies and the tracker scores that rate officially."
+      "title": "The queue by name",
+      "text": "Untagged: cblez (14 days), Adam and Matt (7 days), Ryan rosengren, rahul and Caleb (5 days), Junior, Arman and Andy (4 days), Paul Denniston and Anthony Recelleno (3 days). Talking: Owen, mrplusmoney, Kyle Cooke. Daniel's booked row still has no Call Date or Date Booked, so the tracker cannot see when his call is or whether it happened. Kyle: EUR 10k one pay accepted on the Jul 29 call, blocked on proof, loop open 12 days."
     },
     {
-      "title": "Lead sheet",
-      "text": "All 70 tracked leads show Date Last Sent of 31 July and every row is overdue (22 mid ladder due Aug 1, 48 evergreen due Aug 3), while the EOD form reports 400+ follow ups a day. Both cannot be fully true: either those sends go to leads the sheet does not track yet, or the sheet stopped being updated on day one. Settle which, or the queue data becomes decoration."
+      "title": "Pace vs EUR 30,000",
+      "text": "Collected EUR 0 with 21 days left. Honest read: the goal needs Kyle (EUR 10k one pay, send the proof vault and re book him) plus Daniel showing and closing plus roughly 3 more booked calls converting inside the month. Measured close rate is 0 of 1 shown, sample far below the 5 show gate. Realistic band without Kyle: EUR 0 to 5k. With Kyle: EUR 10 to 15k. Saying 30k out loud requires everything to land."
     },
     {
-      "title": "Cash pace",
-      "text": "EUR 0 collected of the EUR 30,000 goal with 27 days left. Honest projection at current rates is roughly EUR 2,000 unless replies to booked moves. The month is winnable only through the two levers above: fix the reply rate and book the replies that already exist."
-    },
+      "title": "Notes and process",
+      "text": "Aug 3 note about account problems reads as an action block on the main account under the one account model; volume never broke 74 after it. Reply rate tripling with flat volume says the messaging or targeting improved, protect whatever changed. Process this week: booking KPI redefined as 35 percent of positive replies (Playbook v8), proof vault made doctrine (v6), Watchman live sweeps 4x daily, first call read scored (Kyle, 7 of 10), auto logging rails and Ask Palantir shipped awaiting env vars."
+    }
+  ],
+  "archive": [
     {
-      "title": "Watch next week",
-      "text": "Replies per 100 sends after the account check. Stale Tier 1 count driven to zero. Lead sheet freshness."
+      "date": "2026-08-05",
+      "week": "Jul 30 - Aug 5",
+      "headline": "The constraint is the message, not the machine. Ladder at 6.2 follow ups per initial, comments at 96% coverage, logging 6 for 6, yet reply rate sits at 1.2% on 642 sends. Check the flagged IG account before touching copy.",
+      "sections": [
+        {
+          "title": "Binding constraint",
+          "text": "Execution went from suspect to clean this week, so the 1.2% all time reply rate (4 replies on 413 sends this week, about 1.0%) is now legitimately a first touch problem against a 3% floor. Before rewriting the opener, rule out deliverability: the Aug 3 EOD note says the first account has problems, and a throttled account produces exactly this signature. Account health check first, then rotate the opener."
+        },
+        {
+          "title": "Week over week",
+          "text": "Initials 413 vs 229 (+80%). Follow ups 2,549 vs 818 (+212%). Comments 395 logged, about 96% of initials. Replies 4 vs 4: volume nearly doubled, replies flat, which reinforces the constraint above. Booked 0 this week, shown 0, closed 0, cash EUR 0. Daily pace about 69 initials vs the 100 target."
+        },
+        {
+          "title": "Pipeline",
+          "text": "Three Tier 1 replies are stale past 7 days unbooked: Owen the ai guy (10d), mrplusmoney (9d), cblez (9d). Adam and Matt are at 2 days. Ryan and rahul replied within the last day and are live conversations right now. Booking sits at 1 of 8 replies; two more replies and the tracker scores that rate officially."
+        },
+        {
+          "title": "Lead sheet",
+          "text": "All 70 tracked leads show Date Last Sent of 31 July and every row is overdue (22 mid ladder due Aug 1, 48 evergreen due Aug 3), while the EOD form reports 400+ follow ups a day. Both cannot be fully true: either those sends go to leads the sheet does not track yet, or the sheet stopped being updated on day one. Settle which, or the queue data becomes decoration."
+        },
+        {
+          "title": "Cash pace",
+          "text": "EUR 0 collected of the EUR 30,000 goal with 27 days left. Honest projection at current rates is roughly EUR 2,000 unless replies to booked moves. The month is winnable only through the two levers above: fix the reply rate and book the replies that already exist."
+        },
+        {
+          "title": "Watch next week",
+          "text": "Replies per 100 sends after the account check. Stale Tier 1 count driven to zero. Lead sheet freshness."
+        }
+      ]
     }
   ]
 }
