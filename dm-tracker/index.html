@@ -2486,7 +2486,7 @@ function App() {
   const [customTo, setCustomTo] = useState("");
   // Shared planning inputs: the goal calculator edits them, progress uses
   // them. Saved to this browser so slider settings survive refreshes.
-  const CALC_DEFAULTS = { goal: 30000, deal: 10000, aov: 5000, showRate: 0.7, closeRate: 0.175, capacity: 100, sendDays: 26 };
+  const CALC_DEFAULTS = { goal: 30000, deal: 10000, aov: 5000, showRate: 0.7, closeRate: 0.175, capacity: 105, sendDays: 26 };
   const [calc, setCalc] = useState(() => {
     try { return { ...CALC_DEFAULTS, ...JSON.parse(localStorage.getItem("kg_calc") || "{}") }; }
     catch (e) { return CALC_DEFAULTS; }
