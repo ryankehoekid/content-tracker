@@ -42,7 +42,7 @@ export const DAY_MS = 86400000;
 
 export const DEFAULT_CALC = {
   goal: 30000, deal: 10000, aov: 5000,
-  showRate: 0.7, closeRate: 0.175, capacity: 100, sendDays: 26,
+  showRate: 0.7, closeRate: 0.175, capacity: 105, sendDays: 26,
   // null = follow the live measured rate; a number = manual scenario override.
   replyRate: null, bookingRate: null,
 };

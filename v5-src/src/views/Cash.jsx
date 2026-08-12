@@ -226,7 +226,7 @@ function Planning({ calc, setCalc, m }) {
             {numField("Monthly cash goal (€)", goal, set("goal"), 1000)}
             {numField("Cash per close (€)", aov, set("aov"), 500, "What a client pays up front. Most deals are payment plans; the backend is tracked separately.")}
             {numField("Deal value (€)", deal, set("deal"), 1000, "Full contract for the signed-revenue view.")}
-            {numField("Capacity, initials a day", capacity, set("capacity"), 5, "One warmed account sends about 100 a day before block risk.")}
+            {numField("Capacity, initials a day", capacity, set("capacity"), 5, "Two accounts running: 105 a day combined is the plan (Ryan, 2026-08-12).")}
             {numField("Send days a month", sendDays, set("sendDays"), 1)}
             {rateSlider("Reply rate", "replyRate", liveRR, 0.005, 0.1, 0.0025)}
             {rateSlider("Booking rate", "bookingRate", liveBR, 0.05, 0.7, 0.005, "KPI baseline 35%.")}
