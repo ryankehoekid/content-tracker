@@ -1,30 +1,30 @@
 {
-  "date": "2026-08-10",
-  "headline": "Eleven live conversations, one booked. The stone says the same thing four ways: work the queue, book the calls, send Kyle the proof.",
+  "date": "2026-08-17",
+  "headline": "Five booked in a week says the funnel is real. Fifty three initials a day says the machine is starving. One lever: account 2.",
   "sections": [
     {
       "title": "Bottleneck",
-      "text": "Booking. Week reply rate 2.7 percent (11 of 412, MEASURED) cleared most of the distance to the 3 percent floor, then 10 of 11 replies stalled untagged. Week booking rate 9.1 percent against the 35 percent baseline (RYAN-VERIFIED)."
+      "text": "Volume. 53 initials a day MEASURED against the 105 plan, with the funnel below it now measured working: booking 26.1 percent of people (23 replied, 6 booked), a whisker from the 35 baseline."
     },
     {
       "title": "Levers in euros",
-      "text": "One, book the queue at baseline: at 11 replies a week and 35 percent booking, roughly 12 incremental booked calls a month worth about EUR 7,500 a month at assumed show 70, close 17.5, EUR 5k cash per close. Basis: measured reply flow, verified KPI, assumed downstream. Two, Kyle: up to EUR 10,000 one time, price accepted on call (MEASURED), blocked only on proof; send the vault today. Three, volume back to 100 a day: about EUR 4,600 a month at this week's measured reply rate. Basis: measured reply rate, assumed downstream. Levers overlap, never sum."
+      "text": "One, account 2 live: roughly 50 more initials a day is about EUR 5,500 a month at the measured funnel (2.0 percent reply, 26 percent booking, 50 percent show, 1 of 3 close, EUR 5k cash per close ASSUMED and broken if deals go zero fee). It also un-caps follow ups, which the reply waves keep proving are the reply engine. Two, tag and work the 12 untagged replies: about 4 bookings at the 35 percent bar, roughly EUR 3,300 one time, same assumptions. Three, this week's calls executed clean: up to 4 shows queued, the nearest cash in the month. Levers overlap, never sum."
     },
     {
       "title": "Strategic moves",
-      "text": "Inside the gates: no second setter (booking 13.3 percent all time is below the 35 gate), no new niche test (trading is the pipeline but send data is under 300 per challenger). The one move that respects every gate: fleet buildout, accounts 2 and 3, which is risk removal for the main account, not just capacity. ETA remains an OPEN QUESTION."
+      "text": "Gates all say hold: no second setter (booking 26.1 below the 35 gate), no niche test. The one sanctioned move remains fleet completion. Pre call proof goes out before Ryan rosengren today and every call this week, per the proof vault doctrine; if the vault folder still does not exist, that is today's second job."
     },
     {
       "title": "What you would miss",
-      "text": "The reply surge itself. Rates tripled on flat volume, which means something in the messaging changed and worked. Identify it, write it down, do not drift off it."
+      "text": "Pricing posture drift. Daniel at zero fee was the deliberate whale exception; four calls now queue behind it. If zero fee quietly becomes the default, August cash stays EUR 0 by design and nobody decided that on purpose."
     },
     {
       "title": "Do not touch",
-      "text": "The ladder and message set that produced 11 replies. The parked lead scheduler (standby by doctrine). Pricing doctrine. The EOD habit, 15 straight logged days."
+      "text": "The ladder (2,382 follow ups, up 11 percent in a half volume week, still producing reply waves). The messaging set. Pricing doctrine's EUR 10k anchor. The EOD habit, 20 straight logged send days."
     },
     {
       "title": "Training questions",
-      "text": "One: after a positive reply goes quiet before booking, what is the standard post reply cadence, day by day? The ladder covers pre reply only and 10 conversations are sitting in exactly this gap. Two: what changed in the messaging or targeting last week that tripled the reply rate? The stone wants it codified before it drifts."
+      "text": "One: Daniel's rev share terms, what percent of what revenue and when does the first payment land? The cash forecast is blind without it. Two: for this week's four calls, what decides on the spot between the EUR 10k anchor and the zero fee whale exception? The playbook holds the exception but not the trigger."
     }
   ]
 }

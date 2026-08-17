@@ -1,30 +1,57 @@
 {
-  "date": "2026-08-10",
-  "week": "Aug 3 - Aug 9",
-  "headline": "Replies went from 2 to 11 in one week. One got booked. The constraint moved to the reply queue, and the month is still EUR 0.",
+  "date": "2026-08-17",
+  "week": "Aug 10 - Aug 16",
+  "headline": "The funnel finally works: 5 booked in a week, 26 percent of replies. The machine feeding it ran at half power all week waiting on account 2.",
   "sections": [
     {
       "title": "Binding constraint",
-      "text": "Booking, in causal order. Volume held at 69 percent of the 100 a day plan (412 initials over 6 send days, avg 69, block signs in the Aug 3 note), but the week's real break is above it: 11 positive replies came in and only MCP daniel got booked, a 9.1 percent week booking rate against the 35 percent baseline. Eleven open conversations carry no Status at all. The lever is working the queue to a tag: Booked, Talking, Waiting or Dead, nothing left blank."
+      "text": "Volume, back in front of everything by causal order. 318 initials over 6 send days, 53 a day against the 105 plan, the worst volume week on record: an action block Monday, then four straight EOD notes reading main account only. Downstream the funnel performed: 6 replies, 5 bookings, first close signed. The lever is singular, get account 2 sending. Everything below volume is now measured as working."
     },
     {
       "title": "Week over week",
-      "text": "Initials 412 vs 413, flat. Follow ups 2,138 vs 2,465, down 13 percent. Comments 392 vs 395, flat, 95 percent coverage. Replies 11 vs 2, up 5.5x, week reply rate 2.7 percent vs 0.5, nearly at the 3 percent floor. Booked 1 vs 0. Shown 0. Closed 0. Cash EUR 0 vs EUR 0. All time: 15 replies, 2 booked (13.3 percent), 1 shown, 0 closed."
+      "text": "Initials 318 vs 412, down 23 percent. Follow ups 2,382 vs 2,138, up 11 percent. Comments 303 vs 392, 95 percent coverage held. New replies 6 vs 11. Booked 5 vs 1: Josh, Matt, Evan, Ryan rosengren, rahul. Shown 1 (Matt, DQd bad fit, the screening doctrine working). Closed 1 (Daniel, zero setup fee by design, rev share is the deal). Cash EUR 0 vs EUR 0. All time deduplicated: 23 people replied, 6 booked (26.1 percent, closing on the 35 bar), 3 shown, 1 closed."
     },
     {
-      "title": "The queue by name",
-      "text": "Untagged: cblez (14 days), Adam and Matt (7 days), Ryan rosengren, rahul and Caleb (5 days), Junior, Arman and Andy (4 days), Paul Denniston and Anthony Recelleno (3 days). Talking: Owen, mrplusmoney, Kyle Cooke. Daniel's booked row still has no Call Date or Date Booked, so the tracker cannot see when his call is or whether it happened. Kyle: EUR 10k one pay accepted on the Jul 29 call, blocked on proof, loop open 12 days."
+      "title": "Queue and pipeline",
+      "text": "Live calls: Ryan rosengren TODAY, rahul's Saturday call outcome unlogged, Evan the 20th, Josh booked with no set time. Untagged queue is 12 deep: Paul Denniston (10 days, replied twice), Adam and David Price (14 days), Caleb, Junior, Arman, Andy (11 to 12 days), Robert Gutierrez, Ayman, Jalil, Jake Robles, Anthony Cirino. Data debts: Daniel's Deal Value and Date Closed blank, Friday's EOD row dated 2025, Paul and Dial daddy duplicate rows still doubled."
     },
     {
       "title": "Pace vs EUR 30,000",
-      "text": "Collected EUR 0 with 21 days left. Honest read: the goal needs Kyle (EUR 10k one pay, send the proof vault and re book him) plus Daniel showing and closing plus roughly 3 more booked calls converting inside the month. Measured close rate is 0 of 1 shown, sample far below the 5 show gate. Realistic band without Kyle: EUR 0 to 5k. With Kyle: EUR 10 to 15k. Saying 30k out loud requires everything to land."
+      "text": "Collected EUR 0 with 14 days left. The month now rides on call execution: up to 4 shows queued. At the measured funnel (50 percent show, 1 of 3 closed, both under their sample gates) that is 1 to 2 closes. Whether they bring August cash depends entirely on pricing posture: a EUR 10k anchor deal pays this month, another zero fee rev share deal pays later. Honest band: EUR 0 to 10k."
     },
     {
       "title": "Notes and process",
-      "text": "Aug 3 note about account problems reads as an action block on the main account under the one account model; volume never broke 74 after it. Reply rate tripling with flat volume says the messaging or targeting improved, protect whatever changed. Process this week: booking KPI redefined as 35 percent of positive replies (Playbook v8), proof vault made doctrine (v6), Watchman live sweeps 4x daily, first call read scored (Kyle, 7 of 10), auto logging rails and Ask Palantir shipped awaiting env vars."
+      "text": "EOD anomalies all point one way: Monday's block plus main only Tuesday through Saturday equals the halved sends. Process this week: capacity doctrine moved to 105 across two accounts (v9), zero fee whale precedent recorded (Daniel), booking KPI fixed at 35 percent of replies (v8), Watchman caught every booking, cliff and hot reply live. Per account reply tagging is doctrine but untestable until account 2 sends."
     }
   ],
   "archive": [
+    {
+      "date": "2026-08-10",
+      "week": "Aug 3 - Aug 9",
+      "headline": "Replies went from 2 to 11 in one week. One got booked. The constraint moved to the reply queue, and the month is still EUR 0.",
+      "sections": [
+        {
+          "title": "Binding constraint",
+          "text": "Booking, in causal order. Volume held at 69 percent of the 100 a day plan (412 initials over 6 send days, avg 69, block signs in the Aug 3 note), but the week's real break is above it: 11 positive replies came in and only MCP daniel got booked, a 9.1 percent week booking rate against the 35 percent baseline. Eleven open conversations carry no Status at all. The lever is working the queue to a tag: Booked, Talking, Waiting or Dead, nothing left blank."
+        },
+        {
+          "title": "Week over week",
+          "text": "Initials 412 vs 413, flat. Follow ups 2,138 vs 2,465, down 13 percent. Comments 392 vs 395, flat, 95 percent coverage. Replies 11 vs 2, up 5.5x, week reply rate 2.7 percent vs 0.5, nearly at the 3 percent floor. Booked 1 vs 0. Shown 0. Closed 0. Cash EUR 0 vs EUR 0. All time: 15 replies, 2 booked (13.3 percent), 1 shown, 0 closed."
+        },
+        {
+          "title": "The queue by name",
+          "text": "Untagged: cblez (14 days), Adam and Matt (7 days), Ryan rosengren, rahul and Caleb (5 days), Junior, Arman and Andy (4 days), Paul Denniston and Anthony Recelleno (3 days). Talking: Owen, mrplusmoney, Kyle Cooke. Daniel's booked row still has no Call Date or Date Booked, so the tracker cannot see when his call is or whether it happened. Kyle: EUR 10k one pay accepted on the Jul 29 call, blocked on proof, loop open 12 days."
+        },
+        {
+          "title": "Pace vs EUR 30,000",
+          "text": "Collected EUR 0 with 21 days left. Honest read: the goal needs Kyle (EUR 10k one pay, send the proof vault and re book him) plus Daniel showing and closing plus roughly 3 more booked calls converting inside the month. Measured close rate is 0 of 1 shown, sample far below the 5 show gate. Realistic band without Kyle: EUR 0 to 5k. With Kyle: EUR 10 to 15k. Saying 30k out loud requires everything to land."
+        },
+        {
+          "title": "Notes and process",
+          "text": "Aug 3 note about account problems reads as an action block on the main account under the one account model; volume never broke 74 after it. Reply rate tripling with flat volume says the messaging or targeting improved, protect whatever changed. Process this week: booking KPI redefined as 35 percent of positive replies (Playbook v8), proof vault made doctrine (v6), Watchman live sweeps 4x daily, first call read scored (Kyle, 7 of 10), auto logging rails and Ask Palantir shipped awaiting env vars."
+        }
+      ]
+    },
     {
       "date": "2026-08-05",
       "week": "Jul 30 - Aug 5",
