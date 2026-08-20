@@ -4,7 +4,7 @@ import { fmtInt, fmtEuro, fmtPct, dayKey, shortDate } from "../core/format.js";
 import { displayName, parseReplyHour, TIME_BANDS, meanReplyTime, speedToBook, upcomingCalls, lossReasons, accountSplit, leadsStandby } from "../core/metrics.js";
 import { Reveal } from "../ui/atoms.jsx";
 
-const C = { red: "#E11414", bone: "#F4F2ED", steel: "#7A7A7A" };
+const C = { red: "#E11414", bone: "#F4F2ED", steel: "#7A7A7A", teal: "#3EC1BB" };
 const REDUCED = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* The bloodstream: the funnel as a horizontal river. Band thickness is the
@@ -170,7 +170,10 @@ function Gauge({ label, value, floor, strong, sample, sampleNeed, sampleUnit }) 
   const low = sample < sampleNeed;
   const frac = Math.max(0.005, Math.min(value / strong, 1));
   const tickAngle = Math.min(floor / strong, 1) * 360;
-  const col = low ? "#3A3A3A" : value >= floor ? C.red : "#C9A227";
+  // Status colors, same convention as the system dots: teal passes the floor,
+  // amber is under it, red is badly under. Red never means "good" here.
+  const ratio = floor > 0 ? value / floor : 0;
+  const col = low ? "#3A3A3A" : ratio >= 1 ? C.teal : ratio >= 0.6 ? "#C9A227" : C.red;
   // Sweep in from zero on mount.
   const [on, setOn] = React.useState(REDUCED);
   React.useEffect(() => {
