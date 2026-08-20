@@ -35,7 +35,10 @@ export const KPI = {
   replyRate: [0.03, 0.06],
   bookingRate: [0.35, 0.5],
   showRate: [0.60, 0.80],
-  closeRate: [0.15, 0.30],
+  // Close floor set by Ryan at 35% (2026-08-20), replacing the seeded 15%:
+  // at the EUR 10k anchor with money screened before the call, anything
+  // above 35% of shows is a good call day.
+  closeRate: [0.35, 0.5],
 };
 
 export const DAY_MS = 86400000;
