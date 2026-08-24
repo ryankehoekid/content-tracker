@@ -1,30 +1,30 @@
 {
-  "date": "2026-08-17",
-  "headline": "Five booked in a week says the funnel is real. Fifty three initials a day says the machine is starving. One lever: account 2.",
+  "date": "2026-08-24",
+  "headline": "The funnel converts and the first cash proves it. One account has carried the whole thing for eleven working days. That is the only number that matters.",
   "sections": [
     {
       "title": "Bottleneck",
-      "text": "Volume. 53 initials a day MEASURED against the 105 plan, with the funnel below it now measured working: booking 26.1 percent of people (23 replied, 6 booked), a whisker from the 35 baseline."
+      "text": "VOLUME, per causal order. 36 initials logged today against a 105 plan, 34 percent. MEASURED: every EOD note since Aug 12 says main account only, eleven consecutive working days, while doctrine records two accounts live from that date. No block language since Aug 10, so this is not account health, it is account count. Nothing downstream qualifies: booking ran 40 percent of this week's replies against a 35 percent floor, show was 3 of 4 calls sat, close 1 of 3."
     },
     {
       "title": "Levers in euros",
-      "text": "One, account 2 live: roughly 50 more initials a day is about EUR 5,500 a month at the measured funnel (2.0 percent reply, 26 percent booking, 50 percent show, 1 of 3 close, EUR 5k cash per close ASSUMED and broken if deals go zero fee). It also un-caps follow ups, which the reply waves keep proving are the reply engine. Two, tag and work the 12 untagged replies: about 4 bookings at the 35 percent bar, roughly EUR 3,300 one time, same assumptions. Three, this week's calls executed clean: up to 4 shows queued, the nearest cash in the month. Levers overlap, never sum."
+      "text": "1. Account 2 producing at 35 a day. Worth EUR 11,773 a month. Basis MEASURED funnel value of EUR 6.56 per initial (2.1% reply x 21.9% booking x 85.7% show x 33.3% close x EUR 5,000 deal), applied to the 1,794 initial gap over 26 days. Warm-up means this lands in September, not August. 2. The send split. Today ran 233 follow ups against 36 initials. MEASURED across 27 logged days: 7-day replies correlate +0.70 with initials at a four day lag and +0.08 with follow ups. HYPOTHESIS, needs a controlled week: moving 100 follow ups a day into 20 initials is worth EUR 3,412 a month and needs no warm-up. 3. The four unrecorded call outcomes. Worth EUR 5,000 to 10,000 in August alone at the measured 33 percent close, and it costs minutes. 4. The three Saturday replies. Worth EUR 937 expected on the measured conversion chain."
     },
     {
       "title": "Strategic moves",
-      "text": "Gates all say hold: no second setter (booking 26.1 below the 35 gate), no niche test. The one sanctioned move remains fleet completion. Pre call proof goes out before Ryan rosengren today and every call this week, per the proof vault doctrine; if the vault folder still does not exist, that is today's second job."
+      "text": "Second setter: BLOCKED, all four gates fail. Reply 2.1 percent against a 3 percent gate, booking 21.9 percent all time against 35, volume not at plan for two weeks, queue not cleared daily at 17 untagged. More volume: the only permitted route is more warmed credible accounts, never pushing one harder, so account 2 warm-up is correct and is the plan. Account 3 ETA remains an OPEN QUESTION. New niche test: not assessable, the Replies tab carries no niche column. Reactivation: gate not met, the pool over four weeks old is roughly 158 initials from the Jul 25 to 27 cohort, under the 300 threshold."
     },
     {
       "title": "What you would miss",
-      "text": "Pricing posture drift. Daniel at zero fee was the deliberate whale exception; four calls now queue behind it. If zero fee quietly becomes the default, August cash stays EUR 0 by design and nobody decided that on purpose."
+      "text": "Booking rate reads 21.9 percent and looks like a conversion failure. It is not. Three of this week's five replies landed Saturday night and have not been worked; on worked replies the week ran 40 percent. Show rate reads 85.7 percent, but Evan has no Showed mark on a call that already happened, so the true figure is unknown, not 85.7. Follow ups at 233 today are the lowest since Jul 28, the ladder draining as starved initials cohorts age out. It falls further before it recovers."
     },
     {
       "title": "Do not touch",
-      "text": "The ladder (2,382 follow ups, up 11 percent in a half volume week, still producing reply waves). The messaging set. Pricing doctrine's EUR 10k anchor. The EOD habit, 20 straight logged send days."
+      "text": "The message copy. The execution gate is not met at 34 percent of plan volume, so no copy verdict is permitted under the message-dead rules. Speed to lead, with three same-hour reply-to-book conversions measured. The pricing doctrine and the EUR 10k anchor. The 7.5 percent commission. The lead scheduler, parked by design."
     },
     {
       "title": "Training questions",
-      "text": "One: Daniel's rev share terms, what percent of what revenue and when does the first payment land? The cash forecast is blind without it. Two: for this week's four calls, what decides on the spot between the EUR 10k anchor and the zero fee whale exception? The playbook holds the exception but not the trigger."
+      "text": "1. Account 2: eleven working days of main account only since Aug 12, when doctrine records two accounts live from that date. Is it warming silently with zero sends, or has it not started, and what date does it first send? 2. The playbook has no rule for how Rhys splits his day between initials and follow ups. Today ran 6.5 to 1 after a week at 10.6 to 1. Given replies track initials and not follow ups in the measured data, what split do you want as standing policy?"
     }
   ]
 }
