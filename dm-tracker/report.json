@@ -1,40 +1,41 @@
 {
-  "week": "Aug 10 - Aug 16",
-  "date": "2026-08-17",
-  "headline": "Five booked in one week and the first client signed. The number to break next week is initials: account 2 live and 105 a day.",
+  "week": "Aug 17 - Aug 23",
+  "date": "2026-08-24",
+  "headline": "First cash landed: EUR 5,000 and one client signed. The number to break next week is initials, held at a third of plan by eleven working days on one account.",
   "stats": [
     {
       "label": "Initials sent",
-      "value": "318",
-      "sub": "53 a day, half the plan",
+      "value": "225",
+      "sub": "37 a day, 36% of the 105 plan",
       "red": true
     },
     {
       "label": "Follow ups",
-      "value": "2,382",
-      "sub": "up 11% in a starved week"
+      "value": "2,381",
+      "sub": "dead flat, 10.6 per initial"
     },
     {
       "label": "Replies",
-      "value": "6",
-      "sub": "queue now 12 untagged"
+      "value": "5",
+      "sub": "2.2%, under the 3% floor",
+      "red": true
     },
     {
       "label": "Booked",
-      "value": "5",
-      "sub": "up from 1, first close signed"
+      "value": "2",
+      "sub": "40% of replies, above the 35% floor"
     },
     {
       "label": "Cash collected",
-      "value": "EUR 0",
-      "sub": "goal EUR 30,000",
+      "value": "EUR 5,000",
+      "sub": "first cash, 17% of the 30,000 goal",
       "red": true
     },
     {
       "label": "Log streak",
-      "value": "20d",
-      "sub": "every day since day one"
+      "value": "27d",
+      "sub": "every working day since day one"
     }
   ],
-  "footline": "All time: reply rate <b>2.0%</b> on 1,228 sends &middot; booking rate <b>26.1%</b> of people &middot; comments at <b>95%</b> of initials"
+  "footline": "All time: reply rate <b>2.1%</b> on 1,489 sends &middot; booking rate <b>21.9%</b> of people &middot; comments at <b>95%</b> of initials"
 }
