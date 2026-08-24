@@ -1,30 +1,57 @@
 {
-  "date": "2026-08-17",
-  "week": "Aug 10 - Aug 16",
-  "headline": "The funnel finally works: 5 booked in a week, 26 percent of replies. The machine feeding it ran at half power all week waiting on account 2.",
+  "date": "2026-08-24",
+  "week": "Aug 17 - Aug 23",
+  "headline": "First cash week: EUR 5,000 collected and three calls sat. Account 2 has still sent nothing in eleven working days, and that is the whole constraint.",
   "sections": [
     {
       "title": "Binding constraint",
-      "text": "Volume, back in front of everything by causal order. 318 initials over 6 send days, 53 a day against the 105 plan, the worst volume week on record: an action block Monday, then four straight EOD notes reading main account only. Downstream the funnel performed: 6 replies, 5 bookings, first close signed. The lever is singular, get account 2 sending. Everything below volume is now measured as working."
+      "text": "Volume, and specifically account 2. Every EOD note since Aug 12 reads main account only, eleven straight working days, while the playbook records two accounts live from Aug 12 with a combined target of 105. Initials ran 37.5 a day against that plan, 36 percent of it. Nothing downstream is broken: booking ran 40 percent of this week's replies against a 35 percent floor, and the first cash landed. The machine converts. It is being fed a third of what it needs."
     },
     {
       "title": "Week over week",
-      "text": "Initials 318 vs 412, down 23 percent. Follow ups 2,382 vs 2,138, up 11 percent. Comments 303 vs 392, 95 percent coverage held. New replies 6 vs 11. Booked 5 vs 1: Josh, Matt, Evan, Ryan rosengren, rahul. Shown 1 (Matt, DQd bad fit, the screening doctrine working). Closed 1 (Daniel, zero setup fee by design, rev share is the deal). Cash EUR 0 vs EUR 0. All time deduplicated: 23 people replied, 6 booked (26.1 percent, closing on the 35 bar), 3 shown, 1 closed."
+      "text": "Initials 318 to 225, down 29 percent. Follow ups 2,382 to 2,381, dead flat. Comments 303 to 207, down 32 percent. Replies 8 to 5, down 38 percent, reply rate 2.5 to 2.2 percent. Booked 5 to 2. Calls sat 2 to 4, shown 1 to 3. Closed 0 to 1. Cash EUR 0 to EUR 5,000, the first of the account. Follow ups per initial rose from 7.5 to 10.6."
     },
     {
       "title": "Queue and pipeline",
-      "text": "Live calls: Ryan rosengren TODAY, rahul's Saturday call outcome unlogged, Evan the 20th, Josh booked with no set time. Untagged queue is 12 deep: Paul Denniston (10 days, replied twice), Adam and David Price (14 days), Caleb, Junior, Arman, Andy (11 to 12 days), Robert Gutierrez, Ayman, Jalil, Jake Robles, Anthony Cirino. Data debts: Daniel's Deal Value and Date Closed blank, Friday's EOD row dated 2025, Paul and Dial daddy duplicate rows still doubled."
+      "text": "Seventeen replies sit untagged, three from Saturday night: Alexander Cano, Jack trades and Leppan, unworked for roughly thirty six hours against absolute speed to lead doctrine. Four call outcomes are unrecorded: Robert Gutierrez showed Wednesday, luca bayati showed Thursday, Evan Makris has no Showed mark on a Thursday call, and Joshua Haber has been Booked since Aug 10 with nothing after it. Talking rows are not counted stale, per doctrine."
     },
     {
       "title": "Pace vs EUR 30,000",
-      "text": "Collected EUR 0 with 14 days left. The month now rides on call execution: up to 4 shows queued. At the measured funnel (50 percent show, 1 of 3 closed, both under their sample gates) that is 1 to 2 closes. Whether they bring August cash depends entirely on pricing posture: a EUR 10k anchor deal pays this month, another zero fee rev share deal pays later. Honest band: EUR 0 to 10k."
+      "text": "EUR 5,000 collected, 17 percent of goal, seven working days left. Nothing sent from here can close this month: replies lag initials by about four days, then booking, then the call. August's cash is already determined by those four unrecorded outcomes. At the measured 33 percent close on three decided shows, expect one close. Honest projection EUR 10,000 to 15,000, midpoint EUR 12,500. Third week running at that band."
     },
     {
       "title": "Notes and process",
-      "text": "EOD anomalies all point one way: Monday's block plus main only Tuesday through Saturday equals the halved sends. Process this week: capacity doctrine moved to 105 across two accounts (v9), zero fee whale precedent recorded (Daniel), booking KPI fixed at 35 percent of replies (v8), Watchman caught every booking, cliff and hot reply live. Per account reply tagging is doctrine but untestable until account 2 sends."
+      "text": "No block language in any note since Aug 10, so the main account is healthy and the constraint is account count, not account health. Follow ups fell to 233 today, the lowest since July 28, as the starved initials cohorts reach the end of the ladder. The lead scheduler remains parked and on standby by design and is not counted against the week."
     }
   ],
   "archive": [
+    {
+      "date": "2026-08-17",
+      "week": "Aug 10 - Aug 16",
+      "headline": "The funnel finally works: 5 booked in a week, 26 percent of replies. The machine feeding it ran at half power all week waiting on account 2.",
+      "sections": [
+        {
+          "title": "Binding constraint",
+          "text": "Volume, back in front of everything by causal order. 318 initials over 6 send days, 53 a day against the 105 plan, the worst volume week on record: an action block Monday, then four straight EOD notes reading main account only. Downstream the funnel performed: 6 replies, 5 bookings, first close signed. The lever is singular, get account 2 sending. Everything below volume is now measured as working."
+        },
+        {
+          "title": "Week over week",
+          "text": "Initials 318 vs 412, down 23 percent. Follow ups 2,382 vs 2,138, up 11 percent. Comments 303 vs 392, 95 percent coverage held. New replies 6 vs 11. Booked 5 vs 1: Josh, Matt, Evan, Ryan rosengren, rahul. Shown 1 (Matt, DQd bad fit, the screening doctrine working). Closed 1 (Daniel, zero setup fee by design, rev share is the deal). Cash EUR 0 vs EUR 0. All time deduplicated: 23 people replied, 6 booked (26.1 percent, closing on the 35 bar), 3 shown, 1 closed."
+        },
+        {
+          "title": "Queue and pipeline",
+          "text": "Live calls: Ryan rosengren TODAY, rahul's Saturday call outcome unlogged, Evan the 20th, Josh booked with no set time. Untagged queue is 12 deep: Paul Denniston (10 days, replied twice), Adam and David Price (14 days), Caleb, Junior, Arman, Andy (11 to 12 days), Robert Gutierrez, Ayman, Jalil, Jake Robles, Anthony Cirino. Data debts: Daniel's Deal Value and Date Closed blank, Friday's EOD row dated 2025, Paul and Dial daddy duplicate rows still doubled."
+        },
+        {
+          "title": "Pace vs EUR 30,000",
+          "text": "Collected EUR 0 with 14 days left. The month now rides on call execution: up to 4 shows queued. At the measured funnel (50 percent show, 1 of 3 closed, both under their sample gates) that is 1 to 2 closes. Whether they bring August cash depends entirely on pricing posture: a EUR 10k anchor deal pays this month, another zero fee rev share deal pays later. Honest band: EUR 0 to 10k."
+        },
+        {
+          "title": "Notes and process",
+          "text": "EOD anomalies all point one way: Monday's block plus main only Tuesday through Saturday equals the halved sends. Process this week: capacity doctrine moved to 105 across two accounts (v9), zero fee whale precedent recorded (Daniel), booking KPI fixed at 35 percent of replies (v8), Watchman caught every booking, cliff and hot reply live. Per account reply tagging is doctrine but untestable until account 2 sends."
+        }
+      ]
+    },
     {
       "date": "2026-08-10",
       "week": "Aug 3 - Aug 9",
