@@ -1,8 +1,8 @@
 {
-  "date": "2026-08-22",
-  "headline": "Three shows still have no outcome four days on, and no reply has landed in three days. Initials ticked up to 41.",
+  "date": "2026-08-25",
+  "headline": "Three replies from Saturday are still untouched three days on, and Monday is logged twice in the daily log.",
   "sections": [
-    {"title": "Do today", "text": "Log the three call results before anything else. Robert on Wednesday, luca and Evan on Thursday, all three still sitting with no outcome, and Joshua Haber has been Booked since Aug 10 with nothing after it. Those four names are the whole of August's cash, EUR 5,000 of 30,000 with eight working days left. Nothing sent from here replies in time to close this month."},
-    {"title": "Watch", "text": "The send split. Yesterday was 41 initials against 398 follow ups, near ten to one. Replies track initials at a four day lag and show no measurable link to follow ups, so that ratio is the number that decides September."}
+    {"title": "Do today", "text": "Work Alexander Cano, Jack trades and Leppan before anything else. They replied Saturday night and nothing has been logged against them since, which is three days against a speed to lead rule that has already produced three same hour bookings. Then close the four open call outcomes: Robert, luca, Evan and Joshua Haber. Six working days left and EUR 5,000 of 30,000 collected, so those four names are the entire month."},
+    {"title": "Watch", "text": "The daily log now has two rows dated Aug 24, one at 36 initials and one at 31, and the metrics tab is adding both. One of them is wrong, and every rate on the sheet runs off that inflated total until it is fixed."}
   ]
 }
